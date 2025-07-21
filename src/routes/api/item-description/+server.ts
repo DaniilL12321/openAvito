@@ -4,26 +4,29 @@ import type { RequestHandler } from './$types';
 const AVITO_BASE_URL = 'https://www.avito.ru';
 
 export const POST: RequestHandler = async ({ request }) => {
-  const { url, cookies } = await request.json();
-  
-  if (!url) {
-    return new Response(JSON.stringify({ error: 'URL not provided' }), {
-      status: 400
-    });
-  }
-
   try {
-    const response = await fetch(`${AVITO_BASE_URL}${url}`, {
+    const { url, cookies } = await request.json();
+    
+    const response = await fetch(`https://www.avito.ru${url}`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Cookie': cookies || ''
+        'Cookie': cookies
       }
     });
 
     const html = await response.text();
     
+    if (html.includes('Объявление не найдено') || html.includes('Объявление снято с публикации')) {
+      const isDeleted = html.includes('Объявление не найдено');
+      return json({
+        error: isDeleted ? 'Объявление удалено' : 'Объявление закрыто',
+        isDeleted,
+        isClosed: !isDeleted
+      });
+    }
+
     const descriptionMatch = html.match(/<div[^>]*data-marker="item-view\/item-description"[^>]*>(.*?)<\/div>/s);
     let description = '';
     
@@ -62,7 +65,7 @@ export const POST: RequestHandler = async ({ request }) => {
       const href = nameMatch[1];
       sellerInfo.name = nameMatch[2].trim();
       
-      sellerInfo.profileUrl = href.startsWith('http') ? href : `${AVITO_BASE_URL}${href}`;
+      sellerInfo.profileUrl = href.startsWith('http') ? href : `https://www.avito.ru${href}`;
       
       if (href.includes('/brands/')) {
         sellerInfo.isCompany = true;
@@ -112,9 +115,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
     return json({ description, sellerInfo });
   } catch (error) {
-    console.error('Error fetching item data:', error);
-    return new Response(JSON.stringify({ error: 'Failed to fetch data' }), {
-      status: 500
-    });
+    console.error('Error fetching item description:', error);
+    return json({ error: 'Failed to fetch item description' }, { status: 500 });
   }
 }; 

@@ -6,15 +6,18 @@
   import ItemsList from '$lib/components/ItemsList.svelte';
   import ThemeToggle from '$lib/components/ThemeToggle.svelte';
   import Logo from '$lib/components/Logo.svelte';
+  import FavoritesModal from '$lib/components/FavoritesModal.svelte';
   import { selectedCity, avitoCookies } from '$lib/stores';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
+  import { Heart } from 'lucide-svelte';
   import '../lib/styles/theme.css';
 
   export let data: { items: AvitoItem[] };
   let currentItems = data.items;
   let mounted = false;
   let error: string | null = null;
+  let showFavorites = false;
 
   onMount(() => {
     mounted = true;
@@ -100,6 +103,13 @@
             <CitySelector />
           </div>
           <div class="flex items-center gap-2">
+            <button
+              class="inline-flex items-center justify-center rounded-full w-10 h-10 hover:bg-accent hover:text-accent-foreground"
+              on:click={() => showFavorites = true}
+            >
+              <Heart class="h-5 w-5" />
+              <span class="sr-only">Избранное</span>
+            </button>
             <ThemeToggle />
             <Settings />
           </div>
@@ -137,3 +147,7 @@
     />
   </main>
 </div>
+
+{#if showFavorites}
+  <FavoritesModal on:close={() => showFavorites = false} />
+{/if}

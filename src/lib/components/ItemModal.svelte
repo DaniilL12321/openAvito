@@ -2,7 +2,7 @@
   import { createEventDispatcher, onMount } from 'svelte';
   import type { AvitoItem } from '$lib/types';
   import { selectedCity, cities, avitoCookies } from '$lib/stores';
-  import { X, ChevronLeft, ChevronRight, MapPin, Star, ExternalLink } from 'lucide-svelte';
+  import { X, ChevronLeft, ChevronRight, MapPin, Star, ExternalLink, AlertCircle } from 'lucide-svelte';
   import { fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
 
@@ -29,6 +29,8 @@
   let loadingDescription = false;
   let descriptionError = false;
   let sellerInfo: SellerInfo | null = null;
+  let isDeleted = false;
+  let isClosed = false;
 
   onMount(async () => {
     loadingDescription = true;
@@ -44,12 +46,15 @@
         })
       });
       const data = await response.json();
+      
       if (data.description) {
         description = data.description;
       }
       if (data.sellerInfo) {
         sellerInfo = data.sellerInfo;
       }
+      isDeleted = data.isDeleted || false;
+      isClosed = data.isClosed || false;
     } catch (error) {
       console.error('Error loading description:', error);
       descriptionError = true;
@@ -136,7 +141,15 @@
     <div class="grid min-w-0 gap-4 md:grid-cols-2 md:gap-6">
       <div class="space-y-4 min-w-0">
         <div class="relative aspect-square overflow-hidden rounded-2xl bg-muted">
-          {#if item.images && item.images.length > 0}
+          {#if isDeleted}
+            <div class="absolute inset-0 flex flex-col items-center justify-center bg-card">
+              <AlertCircle class="mb-4 h-16 w-16 text-muted-foreground" />
+              <h3 class="text-lg font-semibold">Объявление удалено</h3>
+              <p class="mt-2 text-sm text-muted-foreground text-center px-4">
+                Это объявление было удалено<br>или больше не доступно
+              </p>
+            </div>
+          {:else if item.images && item.images.length > 0}
             <img
               src={item.images[currentImageIndex]['864x864']}
               alt={item.imagesAlt}
@@ -169,7 +182,7 @@
           {/if}
         </div>
 
-        {#if item.images && item.images.length > 1}
+        {#if item.images && item.images.length > 1 && !isDeleted}
           <div class="relative">
             <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-secondary scrollbar-track-transparent">
               <div class="flex gap-2 px-2 md:px-0">

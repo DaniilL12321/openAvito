@@ -39,6 +39,9 @@ export interface AvitoItem {
   hasDiscount?: boolean;
   delivery?: Record<string, unknown>;
   bannerId?: string;
+  isFavorite?: boolean;
+  isActive?: boolean;
+  isDeleted?: boolean;
 }
 
 export interface AvitoResponse {

@@ -1,11 +1,13 @@
 <script lang="ts">
   import type { AvitoItem } from '$lib/types';
-  import { selectedCity, cities } from '$lib/stores';
+  import { selectedCity, cities, avitoCookies } from '$lib/stores';
   import ItemModal from './ItemModal.svelte';
-  import { MapPin } from 'lucide-svelte';
+  import { MapPin, Heart } from 'lucide-svelte';
+  import { createEventDispatcher } from 'svelte';
   
   export let item: AvitoItem;
   let showModal = false;
+  const dispatch = createEventDispatcher();
 
   function getLocationString(item: AvitoItem): string {
     let location = '';
@@ -35,6 +37,33 @@
     e.preventDefault();
     showModal = true;
   }
+
+  async function toggleFavorite(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      const response = await fetch('/api/favorites', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: item.isFavorite ? 'remove' : 'add',
+          ids: [item.id],
+          cookies: $avitoCookies
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        item.isFavorite = !item.isFavorite;
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  }
 </script>
 
 {#if isValid}
@@ -54,6 +83,13 @@
             Скидка
           </span>
         {/if}
+        <button
+          class="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 text-foreground backdrop-blur-sm transition-colors hover:bg-background"
+          on:click={toggleFavorite}
+        >
+          <Heart class="h-4 w-4" fill={item.isFavorite ? 'currentColor' : 'none'} />
+          <span class="sr-only">{item.isFavorite ? 'Удалить из избранного' : 'Добавить в избранное'}</span>
+        </button>
       </div>
       <div class="p-4">
         <h3 class="line-clamp-2 text-sm font-medium">{item.title}</h3>
