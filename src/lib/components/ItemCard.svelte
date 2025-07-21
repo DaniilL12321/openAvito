@@ -1,8 +1,10 @@
 <script lang="ts">
   import type { AvitoItem } from '$lib/types';
   import { selectedCity, cities } from '$lib/stores';
+  import ItemModal from './ItemModal.svelte';
   
   export let item: AvitoItem;
+  let showModal = false;
 
   function getLocationString(item: AvitoItem): string {
     let location = '';
@@ -21,33 +23,50 @@
     
     return location;
   }
+
+  $: isValid = item && 
+    item.title && 
+    item.urlPath && 
+    item.priceDetailed?.string &&
+    (item.images?.length > 0 || item.locationId);
+
+  function handleClick(e: MouseEvent) {
+    e.preventDefault();
+    showModal = true;
+  }
 </script>
 
-<div class="card">
-  <a href="https://www.avito.ru{item.urlPath}" target="_blank" rel="noopener noreferrer">
-    <div class="image-container">
-      {#if item.images && item.images.length > 0}
-        <img src={item.images[0]['432x432']} alt={item.imagesAlt} loading="lazy" />
-      {/if}
-      {#if item.hasDiscount}
-        <span class="discount">Скидка</span>
-      {/if}
-    </div>
-    <div class="content">
-      <h3 class="title">{item.title}</h3>
-      <p class="price">{item.priceDetailed.string} ₽</p>
-      {#if getLocationString(item)}
-        <p class="location">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="location-icon">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-            <circle cx="12" cy="9" r="2.5"/>
-          </svg>
-          {getLocationString(item)}
-        </p>
-      {/if}
-    </div>
-  </a>
-</div>
+{#if isValid}
+  <div class="card">
+    <a href="https://www.avito.ru{item.urlPath}" on:click={handleClick}>
+      <div class="image-container">
+        {#if item.images && item.images.length > 0}
+          <img src={item.images[0]['432x432']} alt={item.imagesAlt} loading="lazy" />
+        {/if}
+        {#if item.hasDiscount}
+          <span class="discount">Скидка</span>
+        {/if}
+      </div>
+      <div class="content">
+        <h3 class="title">{item.title}</h3>
+        <p class="price">{item.priceDetailed.string} ₽</p>
+        {#if getLocationString(item)}
+          <p class="location">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="location-icon">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+              <circle cx="12" cy="9" r="2.5"/>
+            </svg>
+            {getLocationString(item)}
+          </p>
+        {/if}
+      </div>
+    </a>
+  </div>
+
+  {#if showModal}
+    <ItemModal {item} on:close={() => showModal = false} />
+  {/if}
+{/if}
 
 <style>
   .card {
