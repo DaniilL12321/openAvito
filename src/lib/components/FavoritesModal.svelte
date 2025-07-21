@@ -124,6 +124,12 @@
     dispatch('close');
   }
 
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      close();
+    }
+  }
+
   async function toggleFavorite(item: AvitoItem) {
     try {
       const response = await fetch('/api/favorites', {
@@ -162,6 +168,8 @@
   $: activeCount = $favorites.filter(item => item.isActive).length;
   $: inactiveCount = $favorites.length - activeCount;
 </script>
+
+<svelte:window on:keydown={handleKeydown}/>
 
 <div class="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" on:click={close} transition:fly={{ duration: 200, opacity: 0 }}>
   <div

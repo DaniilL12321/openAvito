@@ -116,17 +116,24 @@
 
 <div class="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" on:click={close} transition:fly={{ duration: 200, opacity: 0 }}>
   <div
-    class="fixed bottom-0 z-50 h-[85vh] w-full overflow-y-auto border bg-background p-4 shadow-lg duration-200 rounded-t-3xl md:bottom-auto md:left-[50%] md:top-[50%] md:h-auto md:max-h-[90vh] md:w-[calc(100vw-2rem)] md:max-w-6xl md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-3xl md:p-6 lg:p-8"
+    class="fixed bottom-0 z-50 h-[85vh] w-full overflow-y-auto border bg-background p-0 shadow-lg duration-200 rounded-t-3xl md:bottom-auto md:left-[50%] md:top-[50%] md:h-auto md:max-h-[90vh] md:w-[calc(100vw-2rem)] md:max-w-6xl md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-3xl"
     on:click|stopPropagation
     transition:fly={{ y: 100, duration: 200, opacity: 1, easing: cubicOut }}
   >
-    <button
-      class="absolute right-4 top-4 hidden h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95 md:flex"
-      on:click={close}
-    >
-      <X class="h-5 w-5" />
-      <span class="sr-only">Закрыть</span>
-    </button>
+    <div class="sticky top-0 bg-background/80 backdrop-blur-sm border-b z-30">
+      <div class="px-4 py-3 md:px-6 md:py-4">
+        <div class="relative flex items-center justify-between gap-2">
+          <h2 class="text-lg font-semibold leading-tight tracking-tight md:text-2xl line-clamp-2 text-foreground">{item.title}</h2>
+          <button
+            class="hidden h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95 md:flex"
+            on:click={close}
+          >
+            <X class="h-5 w-5" />
+            <span class="sr-only">Закрыть</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div class="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 md:hidden">
       <button
@@ -138,134 +145,132 @@
       </button>
     </div>
 
-    <div class="grid min-w-0 gap-4 md:grid-cols-2 md:gap-6">
-      <div class="space-y-4 min-w-0">
-        <div class="relative aspect-square overflow-hidden rounded-2xl bg-muted">
-          {#if isDeleted}
-            <div class="absolute inset-0 flex flex-col items-center justify-center bg-card">
-              <AlertCircle class="mb-4 h-16 w-16 text-muted-foreground" />
-              <h3 class="text-lg font-semibold">Объявление удалено</h3>
-              <p class="mt-2 text-sm text-muted-foreground text-center px-4">
-                Это объявление было удалено<br>или больше не доступно
+    <div class="p-4 md:p-6 lg:p-8">
+      <div class="grid min-w-0 gap-4 md:grid-cols-2 md:gap-6">
+        <div class="space-y-4 min-w-0">
+          <div class="relative aspect-square overflow-hidden rounded-2xl bg-muted">
+            {#if isDeleted}
+              <div class="absolute inset-0 flex flex-col items-center justify-center bg-card">
+                <AlertCircle class="mb-4 h-16 w-16 text-muted-foreground" />
+                <h3 class="text-lg font-semibold">Объявление удалено</h3>
+                <p class="mt-2 text-sm text-muted-foreground text-center px-4">
+                  Это объявление было удалено<br>или больше не доступно
+                </p>
+              </div>
+            {:else if item.images && item.images.length > 0}
+              <img
+                src={item.images[currentImageIndex]['864x864']}
+                alt={item.imagesAlt}
+                class="h-full w-full object-contain"
+              />
+              
+              {#if currentImageIndex > 0}
+                <button
+                  class="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-2 text-foreground backdrop-blur-sm transition-colors hover:bg-background md:left-4 md:p-3"
+                  on:click={prevImage}
+                >
+                  <ChevronLeft class="h-4 w-4 md:h-5 md:w-5" />
+                  <span class="sr-only">Предыдущее фото</span>
+                </button>
+              {/if}
+              
+              {#if item.images && currentImageIndex < item.images.length - 1}
+                <button
+                  class="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-2 text-foreground backdrop-blur-sm transition-colors hover:bg-background md:right-4 md:p-3"
+                  on:click={nextImage}
+                >
+                  <ChevronRight class="h-4 w-4 md:h-5 md:w-5" />
+                  <span class="sr-only">Следующее фото</span>
+                </button>
+              {/if}
+
+              <div class="absolute bottom-2 right-2 rounded-full bg-background/80 px-3 py-1.5 text-xs backdrop-blur-sm md:bottom-4 md:right-4 md:px-4 md:py-2 md:text-sm">
+                {currentImageIndex + 1} / {item.images.length}
+              </div>
+            {/if}
+          </div>
+
+          {#if item.images && item.images.length > 1 && !isDeleted}
+            <div class="relative">
+              <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-secondary scrollbar-track-transparent">
+                <div class="flex gap-2 px-2 md:px-0">
+                  {#each item.images as image, i}
+                    <button
+                      class="relative aspect-square h-16 flex-shrink-0 overflow-hidden rounded-xl border-2 transition-colors md:h-20
+                        {i === currentImageIndex ? 'border-primary' : 'border-transparent hover:border-primary/50'}"
+                      on:click={() => selectImage(i)}
+                    >
+                      <img
+                        src={image['208x208']}
+                        alt={`${item.imagesAlt} ${i + 1}`}
+                        class="h-full w-full object-cover"
+                      />
+                    </button>
+                  {/each}
+                </div>
+              </div>
+              {#if item.images.length > 5}
+                <div class="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent md:hidden" />
+              {/if}
+            </div>
+          {/if}
+        </div>
+
+        <div class="space-y-4 min-w-0 md:space-y-6">
+          <div>
+            <div class="flex flex-wrap items-center gap-2 md:gap-4">
+              <p class="text-2xl font-bold md:text-3xl">{item.priceDetailed.string} ₽</p>
+              {#if item.priceDetailed.wasLowered}
+                <span class="rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 md:px-4 md:py-2 md:text-sm">
+                  Цена снижена
+                </span>
+              {/if}
+              {#if item.hasDiscount}
+                <span class="rounded-full bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive md:px-4 md:py-2 md:text-sm">
+                  Скидка
+                </span>
+              {/if}
+            </div>
+            
+            {#if getLocationString(item)}
+              <p class="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
+                <MapPin class="h-4 w-4" />
+                {getLocationString(item)}
               </p>
-            </div>
-          {:else if item.images && item.images.length > 0}
-            <img
-              src={item.images[currentImageIndex]['864x864']}
-              alt={item.imagesAlt}
-              class="h-full w-full object-contain"
-            />
-            
-            {#if currentImageIndex > 0}
-              <button
-                class="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-2 text-foreground backdrop-blur-sm transition-colors hover:bg-background md:left-4 md:p-3"
-                on:click={prevImage}
-              >
-                <ChevronLeft class="h-4 w-4 md:h-5 md:w-5" />
-                <span class="sr-only">Предыдущее фото</span>
-              </button>
             {/if}
-            
-            {#if item.images && currentImageIndex < item.images.length - 1}
-              <button
-                class="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-2 text-foreground backdrop-blur-sm transition-colors hover:bg-background md:right-4 md:p-3"
-                on:click={nextImage}
-              >
-                <ChevronRight class="h-4 w-4 md:h-5 md:w-5" />
-                <span class="sr-only">Следующее фото</span>
-              </button>
-            {/if}
+          </div>
 
-            <div class="absolute bottom-2 right-2 rounded-full bg-background/80 px-3 py-1.5 text-xs backdrop-blur-sm md:bottom-4 md:right-4 md:px-4 md:py-2 md:text-sm">
-              {currentImageIndex + 1} / {item.images.length}
+          {#if loadingDescription}
+            <div class="rounded-2xl border bg-card p-4 text-card-foreground md:p-6">
+              <div class="text-sm text-muted-foreground">Загрузка описания...</div>
+            </div>
+          {:else if description}
+            <div class="rounded-2xl border bg-card p-4 text-card-foreground md:p-6">
+              <h3 class="mb-3 font-semibold md:mb-4">Описание</h3>
+              {#if description.includes('<ul>')}
+                <div class="text-sm space-y-4">
+                  {@html description
+                    .replace(/([А-Яа-я ]+):<ul/g, '<div class="font-medium mb-2">$1:</div><ul')
+                    .replace(/<ul>/g, '<ul class="space-y-2">')
+                    .replace(/<li>/g, '<li class="flex gap-2 items-baseline"><span class="text-muted-foreground">•</span>')
+                    .replace(/<\/li>/g, '</li>')
+                    .replace(/:\s*<\/ul>/g, '</ul>')
+                    .replace(/\n/g, '<br>')
+                  }
+                </div>
+              {:else}
+                <p class="whitespace-pre-line text-sm">{description}</p>
+              {/if}
+            </div>
+          {:else if descriptionError}
+            <div class="rounded-2xl bg-destructive/10 p-4 text-destructive md:p-6">
+              Не удалось загрузить описание
             </div>
           {/if}
-        </div>
 
-        {#if item.images && item.images.length > 1 && !isDeleted}
-          <div class="relative">
-            <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-secondary scrollbar-track-transparent">
-              <div class="flex gap-2 px-2 md:px-0">
-                {#each item.images as image, i}
-                  <button
-                    class="relative aspect-square h-16 flex-shrink-0 overflow-hidden rounded-xl border-2 transition-colors md:h-20
-                      {i === currentImageIndex ? 'border-primary' : 'border-transparent hover:border-primary/50'}"
-                    on:click={() => selectImage(i)}
-                  >
-                    <img
-                      src={image['208x208']}
-                      alt={`${item.imagesAlt} ${i + 1}`}
-                      class="h-full w-full object-cover"
-                    />
-                  </button>
-                {/each}
-              </div>
-            </div>
-            {#if item.images.length > 5}
-              <div class="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent md:hidden" />
-            {/if}
-          </div>
-        {/if}
-      </div>
-
-      <div class="space-y-4 min-w-0 md:space-y-6">
-        <div>
-          <h2 class="!text-foreground text-xl font-semibold leading-tight tracking-tight md:text-2xl">{item.title}</h2>
-          
-          <div class="mt-3 flex flex-wrap items-center gap-2 md:mt-4 md:gap-4">
-            <p class="text-2xl font-bold md:text-3xl">{item.priceDetailed.string} ₽</p>
-            {#if item.priceDetailed.wasLowered}
-              <span class="rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 md:px-4 md:py-2 md:text-sm">
-                Цена снижена
-              </span>
-            {/if}
-            {#if item.hasDiscount}
-              <span class="rounded-full bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive md:px-4 md:py-2 md:text-sm">
-                Скидка
-              </span>
-            {/if}
-          </div>
-          
-          {#if getLocationString(item)}
-            <p class="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
-              <MapPin class="h-4 w-4" />
-              {getLocationString(item)}
-            </p>
-          {/if}
-        </div>
-
-        {#if loadingDescription}
-          <div class="rounded-2xl border bg-card p-4 text-card-foreground md:p-6">
-            <div class="text-sm text-muted-foreground">Загрузка описания...</div>
-          </div>
-        {:else if description}
-          <div class="rounded-2xl border bg-card p-4 text-card-foreground md:p-6">
-            <h3 class="mb-3 font-semibold md:mb-4">Описание</h3>
-            {#if description.includes('<ul>')}
-              <div class="text-sm space-y-4">
-                {@html description
-                  .replace(/([А-Яа-я ]+):<ul/g, '<div class="font-medium mb-2">$1:</div><ul')
-                  .replace(/<ul>/g, '<ul class="space-y-2">')
-                  .replace(/<li>/g, '<li class="flex gap-2 items-baseline"><span class="text-muted-foreground">•</span>')
-                  .replace(/<\/li>/g, '</li>')
-                  .replace(/:\s*<\/ul>/g, '</ul>')
-                  .replace(/\n/g, '<br>')
-                }
-              </div>
-            {:else}
-              <p class="whitespace-pre-line text-sm">{description}</p>
-            {/if}
-          </div>
-        {:else if descriptionError}
-          <div class="rounded-2xl bg-destructive/10 p-4 text-destructive md:p-6">
-            Не удалось загрузить описание
-          </div>
-        {/if}
-
-        {#if sellerInfo}
-          <div class="rounded-2xl border bg-card p-4 text-card-foreground md:p-6">
-            <h3 class="mb-3 font-semibold md:mb-4">Информация о продавце</h3>
-            <div class="space-y-4">
+          {#if sellerInfo}
+            <div class="rounded-2xl border bg-card p-4 text-card-foreground md:p-6">
+              <h3 class="font-semibold">Информация о продавце</h3>
               <div class="flex items-start gap-4">
                 {#if sellerInfo.avatar}
                   <img
@@ -293,7 +298,7 @@
                   </div>
                   
                   {#if sellerInfo.rating}
-                    <div class="mt-2 flex flex-wrap items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                       <span class="font-medium">{sellerInfo.rating}</span>
                       <div class="flex">
                         {#each Array(5) as _, i}
@@ -320,7 +325,7 @@
               </div>
 
               {#if sellerInfo.badges && sellerInfo.badges.length > 0}
-                <div class="flex flex-wrap gap-2">
+                <div class="flex flex-wrap gap-2 py-2">
                   {#each sellerInfo.badges as badge}
                     <span class="rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary md:px-4 md:py-2">
                       {badge}
@@ -345,19 +350,19 @@
                 {/if}
               </div>
             </div>
-          </div>
-        {/if}
+          {/if}
 
-        <div class="flex items-center gap-4">
-          <a
-            href="https://www.avito.ru{item.urlPath}"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 md:px-6 md:py-3"
-          >
-            Посмотреть на Авито
-            <ExternalLink class="h-4 w-4" />
-          </a>
+          <div class="flex items-center gap-4 pb-20 md:pb-0">
+            <a
+              href="https://www.avito.ru{item.urlPath}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 md:px-6 md:py-3"
+            >
+              Открыть на Авито
+              <ExternalLink class="h-4 w-4" />
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -510,9 +515,7 @@
   }
 
   h2 {
-    margin: 0 0 16px;
     font-size: 24px;
-    color: #2b2b2b;
   }
 
   .price-block {

@@ -22,7 +22,15 @@
   function handleClose() {
     isOpen = false;
   }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      handleClose();
+    }
+  }
 </script>
+
+<svelte:window on:keydown={handleKeydown}/>
 
 <button
   class="inline-flex items-center justify-center rounded-full w-10 h-10 hover:bg-accent hover:text-accent-foreground"
