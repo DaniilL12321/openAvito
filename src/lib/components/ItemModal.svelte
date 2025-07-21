@@ -228,7 +228,20 @@
         {:else if description}
           <div class="rounded-2xl border bg-card p-4 text-card-foreground md:p-6">
             <h3 class="mb-3 font-semibold md:mb-4">Описание</h3>
-            <p class="whitespace-pre-line text-sm">{description}</p>
+            {#if description.includes('<ul>')}
+              <div class="text-sm space-y-4">
+                {@html description
+                  .replace(/([А-Яа-я ]+):<ul/g, '<div class="font-medium mb-2">$1:</div><ul')
+                  .replace(/<ul>/g, '<ul class="space-y-2">')
+                  .replace(/<li>/g, '<li class="flex gap-2 items-baseline"><span class="text-muted-foreground">•</span>')
+                  .replace(/<\/li>/g, '</li>')
+                  .replace(/:\s*<\/ul>/g, '</ul>')
+                  .replace(/\n/g, '<br>')
+                }
+              </div>
+            {:else}
+              <p class="whitespace-pre-line text-sm">{description}</p>
+            {/if}
           </div>
         {:else if descriptionError}
           <div class="rounded-2xl bg-destructive/10 p-4 text-destructive md:p-6">

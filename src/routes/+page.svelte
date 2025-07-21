@@ -5,6 +5,7 @@
   import Settings from '$lib/components/Settings.svelte';
   import ItemsList from '$lib/components/ItemsList.svelte';
   import ThemeToggle from '$lib/components/ThemeToggle.svelte';
+  import Logo from '$lib/components/Logo.svelte';
   import { selectedCity, avitoCookies } from '$lib/stores';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
@@ -94,7 +95,10 @@
     <div class="p-2 md:p-4">
       <div class="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
         <div class="flex items-center justify-between gap-2 md:flex-1">
-          <CitySelector />
+          <div class="flex items-center gap-4">
+            <Logo />
+            <CitySelector />
+          </div>
           <div class="flex items-center gap-2">
             <ThemeToggle />
             <Settings />
