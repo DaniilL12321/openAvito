@@ -2,6 +2,9 @@
   import { createEventDispatcher, onMount } from 'svelte';
   import type { AvitoItem } from '$lib/types';
   import { selectedCity, cities, avitoCookies } from '$lib/stores';
+  import { X, ChevronLeft, ChevronRight, MapPin, Star, ExternalLink } from 'lucide-svelte';
+  import { fly } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
 
   interface SellerInfo {
     name: string;
@@ -106,180 +109,228 @@
 
 <svelte:window on:keydown={handleKeydown}/>
 
-<div class="modal-backdrop" on:click={close}>
-  <div class="modal" on:click|stopPropagation>
-    <button class="close-button" on:click={close}>×</button>
-    
-    <div class="modal-content">
-      <div class="images-section">
-        <div class="main-image-container">
+<div class="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" on:click={close} transition:fly={{ duration: 200, opacity: 0 }}>
+  <div
+    class="fixed bottom-0 z-50 h-[85vh] w-full overflow-y-auto border bg-background p-4 shadow-lg duration-200 rounded-t-3xl md:bottom-auto md:left-[50%] md:top-[50%] md:h-auto md:max-h-[90vh] md:w-[calc(100vw-2rem)] md:max-w-6xl md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-3xl md:p-6 lg:p-8"
+    on:click|stopPropagation
+    transition:fly={{ y: 100, duration: 200, opacity: 1, easing: cubicOut }}
+  >
+    <button
+      class="absolute right-4 top-4 hidden h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95 md:flex"
+      on:click={close}
+    >
+      <X class="h-5 w-5" />
+      <span class="sr-only">Закрыть</span>
+    </button>
+
+    <div class="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 md:hidden">
+      <button
+        class="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95"
+        on:click={close}
+      >
+        <X class="h-5 w-5" />
+        <span class="sr-only">Закрыть</span>
+      </button>
+    </div>
+
+    <div class="grid min-w-0 gap-4 md:grid-cols-2 md:gap-6">
+      <div class="space-y-4 min-w-0">
+        <div class="relative aspect-square overflow-hidden rounded-2xl bg-muted">
           {#if item.images && item.images.length > 0}
-            <img src={item.images[currentImageIndex]['864x864']} alt={item.imagesAlt} />
+            <img
+              src={item.images[currentImageIndex]['864x864']}
+              alt={item.imagesAlt}
+              class="h-full w-full object-contain"
+            />
             
             {#if currentImageIndex > 0}
-              <button class="nav-button prev" on:click={prevImage}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="15 18 9 12 15 6"></polyline>
-                </svg>
+              <button
+                class="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-2 text-foreground backdrop-blur-sm transition-colors hover:bg-background md:left-4 md:p-3"
+                on:click={prevImage}
+              >
+                <ChevronLeft class="h-4 w-4 md:h-5 md:w-5" />
+                <span class="sr-only">Предыдущее фото</span>
               </button>
             {/if}
             
             {#if item.images && currentImageIndex < item.images.length - 1}
-              <button class="nav-button next" on:click={nextImage}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
+              <button
+                class="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-2 text-foreground backdrop-blur-sm transition-colors hover:bg-background md:right-4 md:p-3"
+                on:click={nextImage}
+              >
+                <ChevronRight class="h-4 w-4 md:h-5 md:w-5" />
+                <span class="sr-only">Следующее фото</span>
               </button>
             {/if}
 
-            <div class="image-counter">
+            <div class="absolute bottom-2 right-2 rounded-full bg-background/80 px-3 py-1.5 text-xs backdrop-blur-sm md:bottom-4 md:right-4 md:px-4 md:py-2 md:text-sm">
               {currentImageIndex + 1} / {item.images.length}
             </div>
           {/if}
         </div>
 
         {#if item.images && item.images.length > 1}
-          <div class="thumbnails">
-            {#each item.images as image, i}
-              <button 
-                class="thumbnail" 
-                class:active={i === currentImageIndex}
-                on:click={() => selectImage(i)}
-              >
-                <img src={image['208x208']} alt={`${item.imagesAlt} ${i + 1}`} />
-              </button>
-            {/each}
+          <div class="relative">
+            <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-secondary scrollbar-track-transparent">
+              <div class="flex gap-2 px-2 md:px-0">
+                {#each item.images as image, i}
+                  <button
+                    class="relative aspect-square h-16 flex-shrink-0 overflow-hidden rounded-xl border-2 transition-colors md:h-20
+                      {i === currentImageIndex ? 'border-primary' : 'border-transparent hover:border-primary/50'}"
+                    on:click={() => selectImage(i)}
+                  >
+                    <img
+                      src={image['208x208']}
+                      alt={`${item.imagesAlt} ${i + 1}`}
+                      class="h-full w-full object-cover"
+                    />
+                  </button>
+                {/each}
+              </div>
+            </div>
+            {#if item.images.length > 5}
+              <div class="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent md:hidden" />
+            {/if}
           </div>
         {/if}
       </div>
 
-      <div class="info">
-        <h2>{item.title}</h2>
-        
-        <div class="price-block">
-          <p class="price">{item.priceDetailed.string} ₽</p>
-          {#if item.priceDetailed.wasLowered}
-            <span class="price-lowered">Цена снижена</span>
-          {/if}
-          {#if item.hasDiscount}
-            <span class="discount-badge">Скидка</span>
+      <div class="space-y-4 min-w-0 md:space-y-6">
+        <div>
+          <h2 class="!text-foreground text-xl font-semibold leading-tight tracking-tight md:text-2xl">{item.title}</h2>
+          
+          <div class="mt-3 flex flex-wrap items-center gap-2 md:mt-4 md:gap-4">
+            <p class="text-2xl font-bold md:text-3xl">{item.priceDetailed.string} ₽</p>
+            {#if item.priceDetailed.wasLowered}
+              <span class="rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 md:px-4 md:py-2 md:text-sm">
+                Цена снижена
+              </span>
+            {/if}
+            {#if item.hasDiscount}
+              <span class="rounded-full bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive md:px-4 md:py-2 md:text-sm">
+                Скидка
+              </span>
+            {/if}
+          </div>
+          
+          {#if getLocationString(item)}
+            <p class="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
+              <MapPin class="h-4 w-4" />
+              {getLocationString(item)}
+            </p>
           {/if}
         </div>
-        
-        {#if getLocationString(item)}
-          <p class="location">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-              <circle cx="12" cy="9" r="2.5"/>
-            </svg>
-            {getLocationString(item)}
-          </p>
-        {/if}
 
         {#if loadingDescription}
-          <div class="description-placeholder">
-            <div class="loading-text">Загрузка описания...</div>
+          <div class="rounded-2xl border bg-card p-4 text-card-foreground md:p-6">
+            <div class="text-sm text-muted-foreground">Загрузка описания...</div>
           </div>
         {:else if description}
-          <div class="description">
-            <h3>Описание</h3>
-            <p>{description}</p>
+          <div class="rounded-2xl border bg-card p-4 text-card-foreground md:p-6">
+            <h3 class="mb-3 font-semibold md:mb-4">Описание</h3>
+            <p class="whitespace-pre-line text-sm">{description}</p>
           </div>
         {:else if descriptionError}
-          <div class="description-error">
+          <div class="rounded-2xl bg-destructive/10 p-4 text-destructive md:p-6">
             Не удалось загрузить описание
           </div>
         {/if}
 
         {#if sellerInfo}
-          <div class="seller-info">
-            <h3>Информация о продавце</h3>
-            <div class="seller-header">
-              {#if sellerInfo.avatar}
-                <img src={sellerInfo.avatar} alt={sellerInfo.name} class="seller-avatar" />
-              {/if}
-              <div class="seller-main-info">
-                <div class="seller-name-type">
-                  <h4>
-                    <a href={sellerInfo.profileUrl} 
-                       target="_blank" 
-                       rel="noopener noreferrer">{sellerInfo.name}</a>
-                  </h4>
-                  <span class="seller-type">{sellerInfo.type}</span>
-                  {#if sellerInfo.registrationDate}
-                    <span class="seller-registration">· {sellerInfo.registrationDate}</span>
-                  {/if}
-                </div>
-                {#if sellerInfo.rating}
-                  <div class="seller-rating">
-                    <span class="rating-value">{sellerInfo.rating}</span>
-                    <div class="stars">
-                      {#each Array(5) as _, i}
-                        <svg class="star {i < Math.round(parseFloat(sellerInfo.rating.replace(',', '.'))) ? 'filled' : ''}" 
-                             xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                          <path d="m10 14.99-4.92 3.26a.55.55 0 0 1-.83-.6l1.58-5.7L1.2 8.29a.55.55 0 0 1 .31-.98l5.9-.25 2.07-5.53a.55.55 0 0 1 1.02 0l2.07 5.53 5.9.25a.55.55 0 0 1 .31.98l-4.62 3.68 1.58 5.69a.55.55 0 0 1-.83.6z"/>
-                        </svg>
-                      {/each}
-                    </div>
-                    {#if sellerInfo.reviewsCount}
-                      <a href={sellerInfo.profileUrl}
-                         target="_blank" 
-                         rel="noopener noreferrer" 
-                         class="reviews-count">{sellerInfo.reviewsCount} отзывов</a>
+          <div class="rounded-2xl border bg-card p-4 text-card-foreground md:p-6">
+            <h3 class="mb-3 font-semibold md:mb-4">Информация о продавце</h3>
+            <div class="space-y-4">
+              <div class="flex items-start gap-4">
+                {#if sellerInfo.avatar}
+                  <img
+                    src={sellerInfo.avatar}
+                    alt={sellerInfo.name}
+                    class="h-12 w-12 rounded-full object-cover md:h-16 md:w-16"
+                  />
+                {/if}
+                <div class="flex-1 min-w-0">
+                  <div class="flex flex-wrap items-center gap-1 md:gap-2">
+                    <a
+                      href={sellerInfo.profileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="truncate font-medium text-primary hover:underline"
+                    >
+                      {sellerInfo.name}
+                    </a>
+                    <span class="text-sm text-muted-foreground">·</span>
+                    <span class="text-sm text-muted-foreground truncate">{sellerInfo.type}</span>
+                    {#if sellerInfo.registrationDate}
+                      <span class="text-sm text-muted-foreground">·</span>
+                      <span class="text-sm text-muted-foreground truncate">{sellerInfo.registrationDate}</span>
                     {/if}
                   </div>
+                  
+                  {#if sellerInfo.rating}
+                    <div class="mt-2 flex flex-wrap items-center gap-2">
+                      <span class="font-medium">{sellerInfo.rating}</span>
+                      <div class="flex">
+                        {#each Array(5) as _, i}
+                          <Star
+                            class="h-4 w-4 {i < Math.round(parseFloat(sellerInfo.rating.replace(',', '.')))
+                              ? 'fill-primary text-primary'
+                              : 'fill-muted text-muted'}"
+                          />
+                        {/each}
+                      </div>
+                      {#if sellerInfo.reviewsCount}
+                        <a
+                          href={sellerInfo.profileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="text-sm text-primary hover:underline"
+                        >
+                          {sellerInfo.reviewsCount} отзывов
+                        </a>
+                      {/if}
+                    </div>
+                  {/if}
+                </div>
+              </div>
+
+              {#if sellerInfo.badges && sellerInfo.badges.length > 0}
+                <div class="flex flex-wrap gap-2">
+                  {#each sellerInfo.badges as badge}
+                    <span class="rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary md:px-4 md:py-2">
+                      {badge}
+                    </span>
+                  {/each}
+                </div>
+              {/if}
+
+              <div class="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                {#if sellerInfo.itemsCount}
+                  <a
+                    href={sellerInfo.itemsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-primary hover:underline"
+                  >
+                    {sellerInfo.itemsCount} объявлений
+                  </a>
+                {/if}
+                {#if sellerInfo.responseTime}
+                  <span>{sellerInfo.responseTime}</span>
                 {/if}
               </div>
-            </div>
-
-            {#if sellerInfo.badges && sellerInfo.badges.length > 0}
-              <div class="seller-badges">
-                {#each sellerInfo.badges as badge}
-                  <span class="badge">{badge}</span>
-                {/each}
-              </div>
-            {/if}
-
-            <div class="seller-details">
-              {#if sellerInfo.itemsCount}
-                <a href={sellerInfo.itemsUrl}
-                   target="_blank" 
-                   rel="noopener noreferrer" 
-                   class="seller-items-count">{sellerInfo.itemsCount} объявлений</a>
-              {/if}
-              {#if sellerInfo.responseTime}
-                <span class="seller-response-time">{sellerInfo.responseTime}</span>
-              {/if}
             </div>
           </div>
         {/if}
 
-        <div class="details">
-          {#if item.category}
-            <div class="detail-item">
-              <span class="detail-label">Категория:</span>
-              <span class="detail-value">{item.category.slug.replace(/_/g, ' ')}</span>
-            </div>
-          {/if}
-
-          {#if item.delivery}
-            <div class="detail-item">
-              <span class="detail-badge">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="1" y="3" width="15" height="13"></rect>
-                  <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
-                  <circle cx="5.5" cy="18.5" r="2.5"></circle>
-                  <circle cx="18.5" cy="18.5" r="2.5"></circle>
-                </svg>
-                Доступна доставка
-              </span>
-            </div>
-          {/if}
-        </div>
-
-        <div class="actions">
-          <a href="https://www.avito.ru{item.urlPath}" target="_blank" rel="noopener noreferrer" class="view-on-avito">
+        <div class="flex items-center gap-4">
+          <a
+            href="https://www.avito.ru{item.urlPath}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 md:px-6 md:py-3"
+          >
             Посмотреть на Авито
+            <ExternalLink class="h-4 w-4" />
           </a>
         </div>
       </div>

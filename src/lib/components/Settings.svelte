@@ -1,5 +1,9 @@
 <script lang="ts">
   import { avitoCookies } from '$lib/stores';
+  import { Settings as SettingsIcon, X } from 'lucide-svelte';
+  import { fly } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
+  import { portal } from '$lib/actions/portal';
   
   let isOpen = false;
   let cookiesValue: string;
@@ -14,158 +18,97 @@
   function handleOpen() {
     isOpen = true;
   }
+
+  function handleClose() {
+    isOpen = false;
+  }
 </script>
 
-<div class="settings">
-  <button class="settings-button" on:click={handleOpen}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="3"></circle>
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-    </svg>
-  </button>
+<button
+  class="inline-flex items-center justify-center rounded-full w-10 h-10 hover:bg-accent hover:text-accent-foreground"
+  on:click={handleOpen}
+>
+  <SettingsIcon class="h-5 w-5" />
+  <span class="sr-only">Настройки</span>
+</button>
 
-  {#if isOpen}
-    <div class="settings-modal">
-      <div class="settings-content">
-        <h2>Настройки</h2>
-        <div class="settings-field">
-          <label for="cookies">Куки Авито:</label>
-          <textarea
-            id="cookies"
-            bind:value={cookiesValue}
-            placeholder="Вставьте сюда куки с авито.ру"
-            rows="5"
-          ></textarea>
-          <p class="help-text">
-            Если объявления не загружаются, вставьте сюда куки из вашего браузера.
-            Как получить куки:
-            1. Откройте авито.ру
-            2. Войдите в аккаунт
-            3. Откройте DevTools (F12)
-            4. Перейдите во вкладку Network
-            5. Найдите любой запрос к avito.ru
-            6. В заголовках запроса найдите Cookie
-            7. Скопируйте значение и вставьте сюда
-          </p>
+{#if isOpen}
+  <div use:portal>
+    <div class="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" on:click={handleClose} transition:fly={{ duration: 200, opacity: 0 }}>
+      <div
+        class="fixed bottom-0 z-50 h-[85vh] w-full overflow-y-auto border bg-background p-4 shadow-lg duration-200 rounded-t-3xl md:bottom-auto md:left-[50%] md:top-[50%] md:h-auto md:max-h-[90vh] md:w-[calc(100vw-2rem)] md:max-w-lg md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-3xl md:p-6 lg:p-8"
+        on:click|stopPropagation
+        transition:fly={{ y: 100, duration: 200, opacity: 1, easing: cubicOut }}
+      >
+        <button
+          class="absolute right-4 top-4 hidden h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95 md:flex"
+          on:click={handleClose}
+        >
+          <X class="h-5 w-5" />
+          <span class="sr-only">Закрыть</span>
+        </button>
+
+        <div class="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 md:hidden">
+          <button
+            class="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95"
+            on:click={handleClose}
+          >
+            <X class="h-5 w-5" />
+            <span class="sr-only">Закрыть</span>
+          </button>
         </div>
-        <div class="buttons">
-          <button class="save-button" on:click={handleSave}>Сохранить</button>
-          <button class="cancel-button" on:click={() => isOpen = false}>Отмена</button>
+
+        <div class="space-y-6">
+          <div class="space-y-2">
+            <h2 class="!text-foreground text-xl font-semibold leading-tight tracking-tight md:text-2xl">Настройки</h2>
+            <div class="space-y-4">
+              <div class="space-y-2">
+                <label
+                  for="cookies"
+                  class="block text-sm font-medium text-foreground"
+                >
+                  Куки Авито:
+                </label>
+                <textarea
+                  id="cookies"
+                  bind:value={cookiesValue}
+                  placeholder="Вставьте сюда куки с авито.ру"
+                  rows="5"
+                  class="w-full rounded-xl border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                ></textarea>
+                <div class="text-sm text-muted-foreground space-y-1">
+                  <p class="font-medium">Если объявления не загружаются, вставьте сюда куки из вашего браузера.</p>
+                  <p>Как получить куки:</p>
+                  <ol class="list-decimal list-inside space-y-1 pl-1">
+                    <li>Откройте авито.ру</li>
+                    <li>Войдите в аккаунт</li>
+                    <li>Откройте DevTools (F12)</li>
+                    <li>Перейдите во вкладку Network</li>
+                    <li>Найдите любой запрос к avito.ru</li>
+                    <li>В заголовках запроса найдите Cookie</li>
+                    <li>Скопируйте значение и вставьте сюда</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-2">
+            <button
+              class="inline-flex h-10 items-center justify-center rounded-full bg-secondary px-4 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/80 a"
+              on:click={handleClose}
+            >
+              Отмена
+            </button>
+            <button
+              class="inline-flex h-10 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              on:click={handleSave}
+            >
+              Сохранить
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  {/if}
-</div>
-
-<style>
-  .settings {
-    position: relative;
-  }
-
-  .settings-button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 8px;
-    color: #666;
-    transition: color 0.2s ease;
-  }
-
-  .settings-button:hover {
-    color: #00aaff;
-  }
-
-  .settings-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
-
-  .settings-content {
-    background: white;
-    padding: 24px;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 600px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  h2 {
-    margin: 0 0 20px;
-    font-size: 24px;
-    color: #2b2b2b;
-  }
-
-  .settings-field {
-    margin-bottom: 20px;
-  }
-
-  label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-  }
-
-  textarea {
-    width: 100%;
-    padding: 12px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    font-family: monospace;
-    font-size: 14px;
-    resize: vertical;
-  }
-
-  textarea:focus {
-    border-color: #00aaff;
-    outline: none;
-  }
-
-  .help-text {
-    margin-top: 8px;
-    font-size: 14px;
-    color: #666;
-    white-space: pre-line;
-  }
-
-  .buttons {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-  }
-
-  .save-button,
-  .cancel-button {
-    padding: 8px 16px;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s ease;
-  }
-
-  .save-button {
-    background: #00aaff;
-    color: white;
-  }
-
-  .save-button:hover {
-    background: #0095e0;
-  }
-
-  .cancel-button {
-    background: #f5f5f5;
-    color: #666;
-  }
-
-  .cancel-button:hover {
-    background: #eee;
-  }
-</style> 
+  </div>
+{/if} 

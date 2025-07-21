@@ -4,9 +4,11 @@
   import SearchBar from '$lib/components/SearchBar.svelte';
   import Settings from '$lib/components/Settings.svelte';
   import ItemsList from '$lib/components/ItemsList.svelte';
+  import ThemeToggle from '$lib/components/ThemeToggle.svelte';
   import { selectedCity, avitoCookies } from '$lib/stores';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
+  import '../lib/styles/theme.css';
 
   export let data: { items: AvitoItem[] };
   let currentItems = data.items;
@@ -21,7 +23,7 @@
     if ($page.url.search) {
       loadSearchItems();
     } else if ($selectedCity) {
-    loadCityItems($selectedCity.id);
+      loadCityItems($selectedCity.id);
     }
   }
 
@@ -87,27 +89,39 @@
   }
 </script>
 
-<div class="container">
-  <header class="sticky-header">
-    <div class="header-content">
-    <CitySelector />
-      <SearchBar />
-      <Settings />
+<div class="md:container md:mx-auto">
+  <header class="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border">
+    <div class="p-2 md:p-4">
+      <div class="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
+        <div class="flex items-center justify-between gap-2 md:flex-1">
+          <CitySelector />
+          <div class="flex items-center gap-2">
+            <ThemeToggle />
+            <Settings />
+          </div>
+        </div>
+        <div class="md:flex-[2]">
+          <SearchBar />
+        </div>
+      </div>
     </div>
   </header>
 
-  <main>
+  <main class="p-2 md:p-4">
     {#if error}
-      <div class="error">
+      <div class="mb-4 p-4 bg-destructive/10 text-destructive rounded-xl">
         {error}
-        <button class="retry-button" on:click={() => {
-          error = null;
-          if ($page.url.search) {
-            loadSearchItems();
-          } else {
-            loadCityItems($selectedCity.id);
-          }
-        }}>
+        <button
+          class="ml-2 px-3 py-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
+          on:click={() => {
+            error = null;
+            if ($page.url.search) {
+              loadSearchItems();
+            } else {
+              loadCityItems($selectedCity.id);
+            }
+          }}
+        >
           Попробовать снова
         </button>
       </div>
@@ -119,64 +133,3 @@
     />
   </main>
 </div>
-
-<style>
-  .container {
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  .sticky-header {
-    position: sticky;
-    top: 0;
-    background: #fff;
-    z-index: 10;
-    border-bottom: 1px solid #eee;
-    margin-bottom: 20px;
-    padding: 10px 0;
-  }
-
-  .header-content {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 0 20px;
-  }
-
-  .error {
-    margin: 20px;
-    padding: 16px;
-    background: #fff1f0;
-    border: 1px solid #ffccc7;
-    border-radius: 8px;
-    color: #cf1322;
-    text-align: center;
-  }
-
-  .retry-button {
-    margin-left: 12px;
-    padding: 6px 12px;
-    background: #ff4d4f;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.2s ease;
-  }
-
-  .retry-button:hover {
-    background: #ff7875;
-  }
-
-  @media (max-width: 768px) {
-    .container {
-      padding: 10px 0;
-    }
-
-    .header-content {
-      padding: 0 10px;
-      flex-direction: column;
-      gap: 10px;
-    }
-  }
-</style>

@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import debounce from 'lodash/debounce';
+  import { Search } from 'lucide-svelte';
 
   let searchQuery = '';
   let suggestions: any[] = [];
@@ -63,21 +64,24 @@
   });
 </script>
 
-<div class="search-container">
-  <input
-    bind:this={searchInput}
-    type="text"
-    placeholder="Поиск по объявлениям"
-    bind:value={searchQuery}
-    on:input={handleInput}
-    class="search-input"
-  />
+<div class="relative w-full">
+  <div class="relative">
+    <Search class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <input
+      bind:this={searchInput}
+      type="text"
+      placeholder="Поиск по объявлениям"
+      bind:value={searchQuery}
+      on:input={handleInput}
+      class="w-full pl-10 pr-4 py-3 rounded-full border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+    />
+  </div>
   
   {#if showSuggestions && suggestions.length > 0}
-    <div class="suggestions">
+    <div class="absolute top-full left-0 right-0 mt-2 bg-popover border border-border rounded-2xl shadow-lg overflow-hidden z-50">
       {#each suggestions as suggestion}
         <button
-          class="suggestion-item"
+          class="w-full flex items-center gap-3 px-6 py-3 text-left hover:bg-accent hover:text-accent-foreground transition-colors"
           on:click={() => handleSuggestionClick(suggestion)}
         >
           {#if suggestion.text_item.icon}
@@ -86,10 +90,10 @@
               alt=""
               width="20"
               height="20"
-              class="suggestion-icon"
+              class="flex-shrink-0"
             />
           {/if}
-          <span>{suggestion.text_item.title}</span>
+          <span class="truncate">{suggestion.text_item.title}</span>
         </button>
       {/each}
     </div>

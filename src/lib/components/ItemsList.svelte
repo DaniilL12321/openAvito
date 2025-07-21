@@ -100,21 +100,24 @@
   });
 </script>
 
-<section class="items-section">
-  <div class="header">
-    <h2>{title}</h2>
+<section class="space-y-4 md:space-y-6">
+  <div class="flex items-center justify-between">
+    <h2 class="text-lg font-semibold tracking-tight md:text-2xl">{title}</h2>
   </div>
 
   {#if error}
-    <div class="error">
+    <div class="rounded-xl bg-destructive/10 p-4 text-destructive">
       {error}
-      <button class="retry-button" on:click={() => { error = null; hasMore = true; loadMore(); }}>
+      <button
+        class="ml-2 rounded-full bg-destructive px-3 py-1 text-destructive-foreground hover:bg-destructive/90"
+        on:click={() => { error = null; hasMore = true; loadMore(); }}
+      >
         Попробовать снова
       </button>
     </div>
   {/if}
 
-  <div class="grid">
+  <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-5">
     {#each items.filter(item => 
       !item.bannerId && 
       item && 
@@ -128,84 +131,10 @@
   </div>
 
   {#if loading}
-    <div class="loading">Загрузка...</div>
+    <div class="py-4 text-center text-sm text-muted-foreground">Загрузка...</div>
   {/if}
 
   {#if !hasMore && !error}
-    <div class="no-more">Больше объявлений нет</div>
+    <div class="py-4 text-center text-sm text-muted-foreground">Больше объявлений нет</div>
   {/if}
-</section>
-
-<style>
-  .items-section {
-    margin-bottom: 40px;
-  }
-
-  .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin: 0 20px 20px;
-  }
-
-  h2 {
-    font-size: 24px;
-    color: #2b2b2b;
-    margin: 0;
-  }
-
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 20px;
-    padding: 0 20px;
-  }
-
-  .loading,
-  .no-more {
-    text-align: center;
-    padding: 20px;
-    color: #666;
-  }
-
-  .error {
-    margin: 20px;
-    padding: 16px;
-    background: #fff1f0;
-    border: 1px solid #ffccc7;
-    border-radius: 8px;
-    color: #cf1322;
-    text-align: center;
-  }
-
-  .retry-button {
-    margin-left: 12px;
-    padding: 6px 12px;
-    background: #ff4d4f;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.2s ease;
-  }
-
-  .retry-button:hover {
-    background: #ff7875;
-  }
-
-  @media (max-width: 768px) {
-    .header {
-      margin: 0 10px 15px;
-    }
-
-    h2 {
-      font-size: 20px;
-    }
-
-    .grid {
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 10px;
-      padding: 0 10px;
-    }
-  }
-</style> 
+</section> 

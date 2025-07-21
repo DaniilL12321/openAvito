@@ -2,6 +2,7 @@
   import type { AvitoItem } from '$lib/types';
   import { selectedCity, cities } from '$lib/stores';
   import ItemModal from './ItemModal.svelte';
+  import { MapPin } from 'lucide-svelte';
   
   export let item: AvitoItem;
   let showModal = false;
@@ -37,25 +38,29 @@
 </script>
 
 {#if isValid}
-  <div class="card">
-    <a href="https://www.avito.ru{item.urlPath}" on:click={handleClick}>
-      <div class="image-container">
+  <div class="group relative overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md">
+    <a href="https://www.avito.ru{item.urlPath}" on:click={handleClick} class="block">
+      <div class="relative aspect-square overflow-hidden">
         {#if item.images && item.images.length > 0}
-          <img src={item.images[0]['432x432']} alt={item.imagesAlt} loading="lazy" />
+          <img
+            src={item.images[0]['432x432']}
+            alt={item.imagesAlt}
+            loading="lazy"
+            class="h-full w-full object-cover transition-transform group-hover:scale-105"
+          />
         {/if}
         {#if item.hasDiscount}
-          <span class="discount">Скидка</span>
+          <span class="absolute left-2 top-2 rounded-full bg-destructive px-3 py-1 text-xs font-medium text-destructive-foreground">
+            Скидка
+          </span>
         {/if}
       </div>
-      <div class="content">
-        <h3 class="title">{item.title}</h3>
-        <p class="price">{item.priceDetailed.string} ₽</p>
+      <div class="p-4">
+        <h3 class="line-clamp-2 text-sm font-medium">{item.title}</h3>
+        <p class="mt-2 text-lg font-bold">{item.priceDetailed.string} ₽</p>
         {#if getLocationString(item)}
-          <p class="location">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="location-icon">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-              <circle cx="12" cy="9" r="2.5"/>
-            </svg>
+          <p class="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
+            <MapPin class="h-4 w-4" />
             {getLocationString(item)}
           </p>
         {/if}
