@@ -3,28 +3,65 @@
   import { selectedCity, cities, avitoCookies } from '$lib/stores';
   import ItemModal from './ItemModal.svelte';
   import { MapPin, Heart } from 'lucide-svelte';
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, onMount } from 'svelte';
   
   export let item: AvitoItem;
   let showModal = false;
+  let location = '';
+  let isLoadingLocation = false;
+  let locationLoaded = false;
   const dispatch = createEventDispatcher();
 
+  async function loadLocation() {
+    if (!item.location?.name && !isLoadingLocation && !locationLoaded) {
+      isLoadingLocation = true;
+      try {
+        const response = await fetch('/api/item-location', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            url: item.urlPath,
+            cookies: $avitoCookies
+          })
+        });
+        const data = await response.json();
+        
+        if (data.address) {
+          location = data.address;
+          locationLoaded = true;
+        }
+      } catch (error) {
+        console.error('Error loading location:', error);
+      } finally {
+        isLoadingLocation = false;
+      }
+    }
+  }
+
   function getLocationString(item: AvitoItem): string {
-    let location = '';
-    const cityById = cities.find(c => c.id === item.locationId);
+    if (location) return location;
+    
+    let locationStr = '';
+    const cityById = $cities.find(c => c.id === item.locationId);
     const currentCity = cityById || $selectedCity;
     
+    if (currentCity.name === 'Все регионы') {
+      return item.location?.name || '';
+    }
+    
     if (item.location?.name) {
-      location = item.location.name;
+      locationStr = item.location.name;
     } else if (item.location?.id) {
       const parts = item.location.name?.split(', ') || [];
       const district = parts.length > 1 ? parts[1] : '';
-      location = district ? `${currentCity.name}, ${district}` : currentCity.name;
+      locationStr = district ? `${currentCity.name}, ${district}` : currentCity.name;
     } else if (typeof item.locationId === 'number') {
-      location = currentCity.name;
+      locationStr = currentCity.name;
     }
     
-    return location;
+    return locationStr;
   }
 
   $: isValid = item && 
@@ -64,6 +101,10 @@
       console.error('Error toggling favorite:', error);
     }
   }
+
+  onMount(() => {
+    loadLocation();
+  });
 </script>
 
 {#if isValid}
@@ -94,10 +135,14 @@
       <div class="p-4">
         <h3 class="line-clamp-2 text-sm font-medium">{item.title}</h3>
         <p class="mt-2 text-lg font-bold">{item.priceDetailed.string} ₽</p>
-        {#if getLocationString(item)}
+        {#if getLocationString(item) || isLoadingLocation}
           <p class="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
             <MapPin class="h-4 w-4" />
-            {getLocationString(item)}
+            {#if isLoadingLocation}
+              <span class="animate-pulse">Загрузка адреса...</span>
+            {:else}
+              {getLocationString(item)}
+            {/if}
           </p>
         {/if}
       </div>
