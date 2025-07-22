@@ -273,7 +273,7 @@
                   {/if}
                   <button
                     class="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 text-foreground backdrop-blur-sm transition-colors hover:bg-background"
-                    on:click|stopPropagation={() => toggleFavorite(item)}
+                    on:click|preventDefault|stopPropagation={() => toggleFavorite(item)}
                   >
                     <Heart class="h-4 w-4" fill="currentColor" />
                     <span class="sr-only">Удалить из избранного</span>

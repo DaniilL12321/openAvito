@@ -180,14 +180,14 @@
 
 <div 
   bind:this={modalContainer}
-  class="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm outline-none" 
+  class="fixed inset-0 z-[80] bg-background/80 backdrop-blur-sm outline-none" 
   on:click|self={close} 
   on:keydown={handleKeydown}
   tabindex="0"
   transition:fly={{ duration: 200, opacity: 0 }}
 >
   <div
-    class="fixed bottom-0 z-50 h-[85vh] w-full overflow-y-auto border bg-background p-0 shadow-lg duration-200 rounded-t-3xl md:bottom-auto md:left-[50%] md:top-[50%] md:h-auto md:max-h-[90vh] md:w-[calc(100vw-2rem)] md:max-w-2xl md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-3xl"
+    class="fixed bottom-0 z-[80] h-[85vh] w-full overflow-y-auto border bg-background p-0 shadow-lg duration-200 rounded-t-3xl md:bottom-auto md:left-[50%] md:top-[50%] md:h-auto md:max-h-[90vh] md:w-[calc(100vw-2rem)] md:max-w-6xl md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-3xl"
     on:scroll={handleScroll}
     on:click|stopPropagation
     transition:fly={{ y: 100, duration: 200, opacity: 1, easing: cubicOut }}

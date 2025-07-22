@@ -56,6 +56,9 @@
   let modalContainer: HTMLDivElement;
   let location: Location | null = null;
   let showMap = false;
+  let touchStartX = 0;
+  let touchEndX = 0;
+  let isSwiping = false;
 
   async function getLocationDetails(lat: number, lon: number): Promise<LocationDetails> {
     try {
@@ -97,6 +100,13 @@
   onMount(async () => {
     modalContainer?.focus();
     loadingDescription = true;
+    
+    if (item.images && item.images.length > 0) {
+      item.images.forEach(image => {
+        const img = new Image();
+        img.src = image['864x864'];
+      });
+    }
     
     try {
       const response = await fetch('/api/item-description', {
@@ -143,17 +153,33 @@
   function nextImage() {
     if (item.images && currentImageIndex < item.images.length - 1) {
       currentImageIndex++;
+      if (currentImageIndex + 1 < item.images.length) {
+        const nextImg = new Image();
+        nextImg.src = item.images[currentImageIndex + 1]['864x864'];
+      }
     }
   }
 
   function prevImage() {
     if (currentImageIndex > 0) {
       currentImageIndex--;
+      if (currentImageIndex - 1 >= 0) {
+        const prevImg = new Image();
+        prevImg.src = item.images[currentImageIndex - 1]['864x864'];
+      }
     }
   }
 
   function selectImage(index: number) {
     currentImageIndex = index;
+    if (index + 1 < item.images.length) {
+      const nextImg = new Image();
+      nextImg.src = item.images[index + 1]['864x864'];
+    }
+    if (index - 1 >= 0) {
+      const prevImg = new Image();
+      prevImg.src = item.images[index - 1]['864x864'];
+    }
   }
 
   function getLocationString(item: AvitoItem): string {
@@ -192,18 +218,47 @@
     textarea.innerHTML = text;
     return textarea.value;
   }
+
+  function handleTouchStart(event: TouchEvent) {
+    touchStartX = event.touches[0].clientX;
+    isSwiping = true;
+  }
+
+  function handleTouchMove(event: TouchEvent) {
+    if (!isSwiping) return;
+    touchEndX = event.touches[0].clientX;
+  }
+
+  function handleTouchEnd() {
+    if (!isSwiping) return;
+    
+    const swipeDistance = touchEndX - touchStartX;
+    const minSwipeDistance = 50;
+
+    if (Math.abs(swipeDistance) > minSwipeDistance) {
+      if (swipeDistance > 0) {
+        prevImage();
+      } else {
+        nextImage();
+      }
+    }
+
+    isSwiping = false;
+    touchStartX = 0;
+    touchEndX = 0;
+  }
 </script>
 
 <div 
   bind:this={modalContainer}
-  class="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm outline-none" 
+  class="fixed inset-0 z-[70] bg-background/80 backdrop-blur-sm outline-none" 
   on:click|self={close}
   on:keydown={handleKeydown}
   tabindex="0"
   transition:fly={{ duration: 200, opacity: 0 }}
 >
   <div
-    class="fixed bottom-0 z-40 h-[85vh] w-full overflow-y-auto border bg-background p-0 shadow-lg duration-200 rounded-t-3xl md:bottom-auto md:left-[50%] md:top-[50%] md:h-auto md:max-h-[90vh] md:w-[calc(100vw-2rem)] md:max-w-6xl md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-3xl"
+    class="fixed bottom-0 z-[70] h-[85vh] w-full overflow-y-auto border bg-background p-0 shadow-lg duration-200 rounded-t-3xl md:bottom-auto md:left-[50%] md:top-[50%] md:h-auto md:max-h-[90vh] md:w-[calc(100vw-2rem)] md:max-w-6xl md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-3xl"
     on:click|stopPropagation
     transition:fly={{ y: 100, duration: 200, opacity: 1, easing: cubicOut }}
   >
@@ -248,7 +303,10 @@
               <img
                 src={item.images[currentImageIndex]['864x864']}
                 alt={item.imagesAlt}
-                class="h-full w-full object-contain"
+                class="h-full w-full object-contain touch-pan-x"
+                on:touchstart={handleTouchStart}
+                on:touchmove={handleTouchMove}
+                on:touchend={handleTouchEnd}
               />
               
               {#if currentImageIndex > 0}
@@ -291,6 +349,8 @@
                         src={image['208x208']}
                         alt={`${item.imagesAlt} ${i + 1}`}
                         class="h-full w-full object-cover"
+                        loading="eager"
+                        decoding="sync"
                       />
                     </button>
                   {/each}

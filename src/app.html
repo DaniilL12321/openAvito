@@ -1,18 +1,28 @@
-<!doctype html>
-<html lang="ru">
+<!DOCTYPE html>
+<html lang="en">
 	<head>
 		<meta charset="utf-8" />
-		<link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>OpenAvito — альтернативный клиент</title>
-		<meta name="description" content="Удобный просмотр объявлений с Авито" />
-		<script>
-			const theme = localStorage.getItem('theme') || 'light';
-			document.documentElement.classList.toggle('dark', theme === 'dark');
-		</script>
+		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black">
+		<link rel="manifest" href="%sveltekit.assets%/manifest.json">
+		<link rel="apple-touch-icon" href="%sveltekit.assets%/icon-192x192.png">
+		<style>
+			* {
+				-webkit-touch-callout: none;
+				-webkit-user-select: none;
+				-webkit-tap-highlight-color: transparent;
+				touch-action: manipulation;
+			}
+			img {
+				-webkit-user-drag: none;
+				user-select: none;
+			}
+		</style>
 		%sveltekit.head%
 	</head>
-	<body class="min-h-screen bg-background font-sans antialiased">
+	<body data-sveltekit-preload-data="hover">
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>
