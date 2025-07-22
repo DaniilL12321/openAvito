@@ -131,6 +131,12 @@
       nextImage();
     }
   }
+
+  function decodeHtmlEntities(text: string): string {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  }
 </script>
 
 <div 
@@ -301,7 +307,7 @@
                 {#if sellerInfo.avatar}
                   <img
                     src={sellerInfo.avatar}
-                    alt={sellerInfo.name}
+                    alt={decodeHtmlEntities(sellerInfo.name)}
                     class="h-12 w-12 rounded-full object-cover md:h-16 md:w-16"
                   />
                 {/if}
@@ -313,7 +319,7 @@
                       rel="noopener noreferrer"
                       class="truncate font-medium text-primary"
                     >
-                      {sellerInfo.name}
+                      {decodeHtmlEntities(sellerInfo.name)}
                     </a>
                     <span class="text-sm text-muted-foreground">·</span>
                     <span class="text-sm text-muted-foreground truncate">{sellerInfo.type}</span>
@@ -352,7 +358,7 @@
                 <div class="flex flex-wrap gap-2 py-2">
                   {#each sellerInfo.badges as badge}
                     <span class="rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary md:px-4 md:py-2">
-                      {badge}
+                      {decodeHtmlEntities(badge)}
                     </span>
                   {/each}
                 </div>
@@ -395,7 +401,7 @@
 
 {#if showReviews && sellerInfo && sellerInfo.ratingStat && sellerInfo.scoreFloat !== null}
   <ReviewsModal
-    sellerName={sellerInfo.name}
+    sellerName={decodeHtmlEntities(sellerInfo.name)}
     ratingStat={sellerInfo.ratingStat}
     scoreFloat={sellerInfo.scoreFloat}
     totalReviews={parseInt(sellerInfo.reviewsCount)}

@@ -5,10 +5,21 @@
   import { cubicOut } from 'svelte/easing';
   import { avitoCookies } from '$lib/stores';
   import ImageViewer from './ImageViewer.svelte';
+  import Select from './ui/Select.svelte';
+  import Toggle from './ui/Toggle.svelte';
 
   interface RatingEntry {
     count: number;
     score: number;
+    title: string;
+  }
+
+  interface Answer {
+    answerId: number;
+    answered: string;
+    avatar: string;
+    link: string;
+    text: string;
     title: string;
   }
 
@@ -22,7 +33,6 @@
     textSections: Array<{ text: string }>;
     title: string;
     titleCaption: string;
-    deliveryTitle?: string;
     images?: Array<{
       '1280x960': string;
       '180x135': string;
@@ -33,6 +43,14 @@
         height: number;
       };
     }>;
+    deliveryTitle?: string;
+    answer?: Answer;
+  }
+
+  interface ReviewFilters {
+    sort: 'date_desc' | 'date_asc' | 'score_desc' | 'score_asc';
+    onlyWithImages: boolean;
+    onlyWithDelivery: boolean;
   }
 
   export let sellerName: string;
@@ -46,18 +64,36 @@
   let loading = false;
   let hasMore = true;
   let offset = 0;
-  let container: HTMLElement;
   let modalContainer: HTMLDivElement;
   let selectedImages: Review['images'] | null = null;
   let selectedImageIndex = 0;
 
-  async function loadReviews() {
-    if (loading || !hasMore) return;
+  const sortOptions = [
+    { value: 'date_desc', label: 'Сначала новые' },
+    { value: 'date_asc', label: 'Сначала старые' },
+    { value: 'score_desc', label: 'Сначала положительные' },
+    { value: 'score_asc', label: 'Сначала отрицательные' }
+  ];
+
+  let filters: ReviewFilters = {
+    sort: 'date_desc',
+    onlyWithImages: false,
+    onlyWithDelivery: false
+  };
+
+  async function loadReviews(resetList = false) {
+    if (loading || (!hasMore && !resetList)) return;
     
     loading = true;
     try {
+      if (resetList) {
+        reviews = [];
+        offset = 0;
+        hasMore = true;
+      }
+
       const response = await fetch(
-        `/api/reviews?userId=${userId}&offset=${offset}`,
+        `/api/reviews?userId=${userId}&offset=${offset}&sortRating=${filters.sort}`,
         {
           method: 'POST',
           headers: {
@@ -71,7 +107,18 @@
       const data = await response.json();
       
       if (data.reviews) {
-        reviews = [...reviews, ...data.reviews];
+        let filteredReviews = data.reviews;
+        
+        // Клиентская фильтрация только для изображений и доставки
+        if (filters.onlyWithImages) {
+          filteredReviews = filteredReviews.filter((review: Review) => review.images && review.images.length > 0);
+        }
+        
+        if (filters.onlyWithDelivery) {
+          filteredReviews = filteredReviews.filter((review: Review) => review.deliveryTitle);
+        }
+
+        reviews = resetList ? filteredReviews : [...reviews, ...filteredReviews];
         offset += 25;
         hasMore = data.reviews.length > 0 && data.nextPage !== null;
       }
@@ -82,30 +129,16 @@
     }
   }
 
+  function handleFilterChange() {
+    loadReviews(true);
+  }
+
   function handleScroll(e: Event) {
     const target = e.target as HTMLElement;
     if (target.scrollHeight - target.scrollTop - target.clientHeight < 100) {
       loadReviews();
     }
   }
-
-  function close() {
-    dispatch('close');
-  }
-
-  function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') {
-      event.stopPropagation();
-      close();
-    }
-  }
-
-  onMount(() => {
-    loadReviews();
-    modalContainer?.focus();
-  });
-
-  $: totalScore = ratingStat.reduce((acc, curr) => acc + curr.count, 0);
 
   function showImage(images: Review['images'], index: number) {
     if (images) {
@@ -114,10 +147,34 @@
     }
   }
 
+  onMount(() => {
+    modalContainer?.focus();
+    loadReviews();
+  });
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      close();
+    }
+  }
+
+  function close() {
+    dispatch('close');
+  }
+
   function handleImageViewerClose() {
     selectedImages = null;
     setTimeout(() => modalContainer?.focus(), 0);
   }
+
+  function decodeHtmlEntities(text: string): string {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  }
+
+  $: totalScore = ratingStat.reduce((acc, curr) => acc + curr.count, 0);
 </script>
 
 <svelte:window on:keydown={handleKeydown}/>
@@ -132,7 +189,6 @@
 >
   <div
     class="fixed bottom-0 z-50 h-[85vh] w-full overflow-y-auto border bg-background p-0 shadow-lg duration-200 rounded-t-3xl md:bottom-auto md:left-[50%] md:top-[50%] md:h-auto md:max-h-[90vh] md:w-[calc(100vw-2rem)] md:max-w-2xl md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-3xl"
-    bind:this={container}
     on:scroll={handleScroll}
     on:click|stopPropagation
     transition:fly={{ y: 100, duration: 200, opacity: 1, easing: cubicOut }}
@@ -141,7 +197,7 @@
       <div class="px-4 py-3 md:px-6 md:py-4">
         <div class="relative flex items-center justify-between gap-2">
           <h2 class="text-lg font-semibold leading-tight tracking-tight md:text-2xl">
-            Отзывы о продавце {sellerName}
+            Отзывы о продавце {decodeHtmlEntities(sellerName)}
           </h2>
           <button
             class="h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95 hidden md:flex"
@@ -198,18 +254,40 @@
         </div>
       </div>
 
+      <div class="mt-6 flex flex-wrap gap-4 items-center">
+        <div class="w-full sm:w-auto">
+          <Select
+            options={sortOptions}
+            bind:value={filters.sort}
+            on:change={handleFilterChange}
+          />
+        </div>
+
+        <Toggle
+          bind:checked={filters.onlyWithImages}
+          label="Только с фото"
+          on:change={handleFilterChange}
+        />
+
+        <Toggle
+          bind:checked={filters.onlyWithDelivery}
+          label="Только с Авито Доставкой"
+          on:change={handleFilterChange}
+        />
+      </div>
+
       <div class="mt-6 space-y-4">
         {#each reviews as review}
           <div class="rounded-2xl border bg-card p-4 text-card-foreground">
             <div class="flex items-start gap-3">
               <img
                 src={review.avatar}
-                alt={review.title}
+                alt={decodeHtmlEntities(review.title)}
                 class="h-10 w-10 rounded-full object-cover"
               />
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
-                  <span class="font-medium">{review.title}</span>
+                  <span class="font-medium">{decodeHtmlEntities(review.title)}</span>
                   <span class="text-sm text-muted-foreground">·</span>
                   <span class="text-sm text-muted-foreground">{review.titleCaption}</span>
                 </div>
@@ -255,6 +333,35 @@
                         />
                       </button>
                     {/each}
+                  </div>
+                {/if}
+
+                {#if review.answer}
+                  <div class="mt-4 pl-4 border-l-2 border-muted">
+                    <div class="flex items-start gap-3">
+                      <img
+                        src={review.answer.avatar}
+                        alt={decodeHtmlEntities(review.answer.title)}
+                        class="h-8 w-8 rounded-full object-cover"
+                      />
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                          <a 
+                            href={review.answer.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="font-medium text-primary"
+                          >
+                            {decodeHtmlEntities(review.answer.title)}
+                          </a>
+                          <span class="text-sm text-muted-foreground">·</span>
+                          <span class="text-sm text-muted-foreground">{review.answer.answered}</span>
+                        </div>
+                        <div class="mt-2 text-sm whitespace-pre-line">
+                          {review.answer.text}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 {/if}
               </div>

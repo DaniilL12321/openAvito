@@ -48,14 +48,14 @@ export const POST: RequestHandler = async ({ request, url }) => {
   try {
     const userId = url.searchParams.get('userId');
     const offset = url.searchParams.get('offset') || '0';
+    const sortRating = url.searchParams.get('sortRating') || 'date_desc';
     const { cookies } = await request.json();
 
     if (!userId) {
       return json({ error: 'User ID is required' }, { status: 400 });
     }
 
-    const isHash = /^[a-f0-9]{32}$/.test(userId);
-    const apiUrl = `${AVITO_BASE_URL}/web/7/user/${userId}/ratings?limit=25&offset=${offset}&sortRating=date_desc&summary_redesign=1`;
+    const apiUrl = `${AVITO_BASE_URL}/web/7/user/${userId}/ratings?summary_redesign=1&sortRating=${sortRating}&limit=25&offset=${offset}`;
 
     const response = await fetch(apiUrl, {
       headers: {
