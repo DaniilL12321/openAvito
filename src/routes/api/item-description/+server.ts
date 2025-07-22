@@ -3,6 +3,120 @@ import type { RequestHandler } from './$types';
 
 const AVITO_BASE_URL = 'https://www.avito.ru';
 
+interface RatingEntry {
+  count: number;
+  score: number;
+  title: string;
+}
+
+interface Review {
+  avatar: string;
+  id: number;
+  itemTitle: string;
+  rated: string;
+  score: number;
+  stageTitle: string;
+  textSections: Array<{ text: string }>;
+  title: string;
+  titleCaption: string;
+}
+
+interface ScoreEntry {
+  ratingAction?: {
+    description: string;
+    link: {
+      title: string;
+      url: string;
+    };
+    title: string;
+    uri: string;
+  };
+  ratingStat?: RatingEntry[];
+  reviewCount?: number;
+  score?: number;
+  scoreFloat?: number;
+  subtitle?: string;
+  title?: string;
+}
+
+interface ReviewsResponse {
+  entries: Array<{
+    type: string;
+    value: ScoreEntry | Review;
+  }>;
+  nextPage?: string;
+}
+
+async function fetchReviewsData(userId: string, cookies: string, offset: number = 0): Promise<{ 
+  reviewCount: number; 
+  ratingStat: RatingEntry[] | null; 
+  scoreFloat: number | null;
+  reviews: Review[];
+  nextPage: string | null;
+} | null> {
+  try {
+    const response = await fetch(
+      `${AVITO_BASE_URL}/web/7/user/${userId}/ratings?limit=25&offset=${offset}&sortRating=date_desc&summary_redesign=1`,
+      {
+        headers: {
+          'accept': 'application/json, text/plain, */*',
+          'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+          'cache-control': 'no-cache',
+          'pragma': 'no-cache',
+          'cookie': cookies,
+          'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      }
+    );
+
+    const data = await response.json() as ReviewsResponse;
+    const reviews: Review[] = [];
+    let scoreEntry: ScoreEntry | null = null;
+    
+    for (const entry of data.entries) {
+      if (entry.type === 'score') {
+        scoreEntry = entry.value as ScoreEntry;
+      } else if (entry.type === 'rating') {
+        reviews.push(entry.value as Review);
+      }
+    }
+    
+    if (scoreEntry && scoreEntry.reviewCount !== undefined) {
+      return {
+        reviewCount: scoreEntry.reviewCount,
+        ratingStat: scoreEntry.ratingStat || null,
+        scoreFloat: scoreEntry.scoreFloat || null,
+        reviews,
+        nextPage: data.nextPage || null
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching reviews data:', error);
+    return null;
+  }
+}
+
+async function fetchSellerIdFromBrandPage(brandUrl: string, cookies: string): Promise<string | null> {
+  try {
+    const response = await fetch(brandUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Cookie': cookies
+      }
+    });
+
+    const html = await response.text();
+    const sellerIdMatch = html.match(/sellerId=([a-f0-9]{32})/);
+    return sellerIdMatch ? sellerIdMatch[1] : null;
+  } catch (error) {
+    console.error('Error fetching seller ID:', error);
+    return null;
+  }
+}
+
 export const POST: RequestHandler = async ({ request }) => {
   try {
     const { url, cookies } = await request.json();
@@ -57,7 +171,10 @@ export const POST: RequestHandler = async ({ request }) => {
       itemsCount: '',
       profileUrl: '',
       itemsUrl: '',
-      isCompany: false
+      isCompany: false,
+      ratingStat: null as RatingEntry[] | null,
+      scoreFloat: null as number | null,
+      sellerId: null as string | null
     };
 
     const nameMatch = html.match(/data-marker="seller-link\/link"[^>]*href="([^"]+)"[^>]*>.*?<span[^>]*>([^<]+)<\/span>/s);
@@ -70,19 +187,28 @@ export const POST: RequestHandler = async ({ request }) => {
       if (href.includes('/brands/')) {
         sellerInfo.isCompany = true;
         sellerInfo.itemsUrl = sellerInfo.profileUrl;
+        sellerInfo.sellerId = await fetchSellerIdFromBrandPage(sellerInfo.profileUrl, cookies);
       } else {
         sellerInfo.itemsUrl = `${sellerInfo.profileUrl}?page_from=from_item_card_button`;
+      }
+
+      const userIdMatch = sellerInfo.isCompany 
+        ? sellerInfo.sellerId 
+        : sellerInfo.profileUrl.match(/\/user\/([^/?]+)/)?.[1];
+
+      if (userIdMatch) {
+        const reviewsData = await fetchReviewsData(userIdMatch, cookies);
+        if (reviewsData) {
+          sellerInfo.reviewsCount = reviewsData.reviewCount.toString();
+          sellerInfo.ratingStat = reviewsData.ratingStat;
+          sellerInfo.scoreFloat = reviewsData.scoreFloat;
+        }
       }
     }
 
     const ratingMatch = html.match(/<div class="Ww4IN seller-info-rating"><span class="Tdsqf">([0-9,]+)<\/span>/);
     if (ratingMatch) {
       sellerInfo.rating = ratingMatch[1];
-    }
-
-    const reviewsMatch = html.match(/data-marker="rating-caption\/rating"[^>]*>(\d+)\s+отзыв/);
-    if (reviewsMatch) {
-      sellerInfo.reviewsCount = reviewsMatch[1];
     }
 
     const typeMatch = html.match(/data-marker="seller-info\/label"[^>]*>([^<]+)(?:\s*·\s*([^<]+))?</);

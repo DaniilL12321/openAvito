@@ -5,6 +5,13 @@
   import { X, ChevronLeft, ChevronRight, MapPin, Star, ExternalLink, AlertCircle } from 'lucide-svelte';
   import { fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
+  import ReviewsModal from './ReviewsModal.svelte';
+
+  interface RatingEntry {
+    count: number;
+    score: number;
+    title: string;
+  }
 
   interface SellerInfo {
     name: string;
@@ -19,6 +26,9 @@
     profileUrl: string;
     itemsUrl: string;
     isCompany: boolean;
+    ratingStat: RatingEntry[] | null;
+    scoreFloat: number | null;
+    sellerId: string;
   }
 
   export let item: AvitoItem;
@@ -31,8 +41,11 @@
   let sellerInfo: SellerInfo | null = null;
   let isDeleted = false;
   let isClosed = false;
+  let showReviews = false;
+  let modalContainer: HTMLDivElement;
 
   onMount(async () => {
+    modalContainer?.focus();
     loadingDescription = true;
     try {
       const response = await fetch('/api/item-description', {
@@ -65,6 +78,11 @@
 
   function close() {
     dispatch('close');
+  }
+
+  function handleReviewsClose() {
+    showReviews = false;
+    setTimeout(() => modalContainer?.focus(), 0);
   }
 
   function nextImage() {
@@ -102,21 +120,29 @@
   }
 
   function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'ArrowLeft') {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      close();
+    } else if (event.key === 'ArrowLeft') {
+      event.stopPropagation();
       prevImage();
     } else if (event.key === 'ArrowRight') {
+      event.stopPropagation();
       nextImage();
-    } else if (event.key === 'Escape') {
-      close();
     }
   }
 </script>
 
-<svelte:window on:keydown={handleKeydown}/>
-
-<div class="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" on:click={close} transition:fly={{ duration: 200, opacity: 0 }}>
+<div 
+  bind:this={modalContainer}
+  class="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm outline-none" 
+  on:click|self={close}
+  on:keydown={handleKeydown}
+  tabindex="0"
+  transition:fly={{ duration: 200, opacity: 0 }}
+>
   <div
-    class="fixed bottom-0 z-50 h-[85vh] w-full overflow-y-auto border bg-background p-0 shadow-lg duration-200 rounded-t-3xl md:bottom-auto md:left-[50%] md:top-[50%] md:h-auto md:max-h-[90vh] md:w-[calc(100vw-2rem)] md:max-w-6xl md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-3xl"
+    class="fixed bottom-0 z-40 h-[85vh] w-full overflow-y-auto border bg-background p-0 shadow-lg duration-200 rounded-t-3xl md:bottom-auto md:left-[50%] md:top-[50%] md:h-auto md:max-h-[90vh] md:w-[calc(100vw-2rem)] md:max-w-6xl md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-3xl"
     on:click|stopPropagation
     transition:fly={{ y: 100, duration: 200, opacity: 1, easing: cubicOut }}
   >
@@ -285,7 +311,7 @@
                       href={sellerInfo.profileUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      class="truncate font-medium text-primary hover:underline"
+                      class="truncate font-medium text-primary"
                     >
                       {sellerInfo.name}
                     </a>
@@ -310,14 +336,12 @@
                         {/each}
                       </div>
                       {#if sellerInfo.reviewsCount}
-                        <a
-                          href={sellerInfo.profileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="text-sm text-primary hover:underline"
+                        <button
+                          class="text-sm text-primary"
+                          on:click={() => showReviews = true}
                         >
                           {sellerInfo.reviewsCount} отзывов
-                        </a>
+                        </button>
                       {/if}
                     </div>
                   {/if}
@@ -340,7 +364,7 @@
                     href={sellerInfo.itemsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="text-primary hover:underline"
+                    class="text-primary"
                   >
                     {sellerInfo.itemsCount} объявлений
                   </a>
@@ -368,6 +392,17 @@
     </div>
   </div>
 </div>
+
+{#if showReviews && sellerInfo && sellerInfo.ratingStat && sellerInfo.scoreFloat !== null}
+  <ReviewsModal
+    sellerName={sellerInfo.name}
+    ratingStat={sellerInfo.ratingStat}
+    scoreFloat={sellerInfo.scoreFloat}
+    totalReviews={parseInt(sellerInfo.reviewsCount)}
+    userId={sellerInfo.isCompany ? sellerInfo.sellerId || '' : sellerInfo.profileUrl.match(/\/user\/([^/?]+)/)?.[1] || ''}
+    on:close={handleReviewsClose}
+  />
+{/if}
 
 <style>
   .modal-backdrop {
@@ -719,10 +754,6 @@
     text-decoration: none;
   }
 
-  .seller-name-type h4 a:hover {
-    text-decoration: underline;
-  }
-
   .seller-type {
     color: #666;
     font-size: 14px;
@@ -765,10 +796,6 @@
     font-size: 14px;
   }
 
-  .reviews-count:hover {
-    text-decoration: underline;
-  }
-
   .seller-badges {
     margin-top: 16px;
     display: flex;
@@ -795,10 +822,6 @@
   .seller-items-count {
     color: #00aaff;
     text-decoration: none;
-  }
-
-  .seller-items-count:hover {
-    text-decoration: underline;
   }
 
   @media (max-width: 768px) {

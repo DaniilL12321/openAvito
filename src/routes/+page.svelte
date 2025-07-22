@@ -17,6 +17,7 @@
   let currentItems = data.items;
   let mounted = false;
   let error: string | null = null;
+  let loading = false;
   let showFavorites = false;
 
   onMount(() => {
@@ -32,37 +33,53 @@
   }
 
   async function loadSearchItems() {
+    loading = true;
+    error = null;
+
     try {
-      const params = new URLSearchParams($page.url.search);
-      params.set('locationId', $selectedCity.id.toString());
-      
-      const response = await fetch('/api/items', {
+      const urlParams = new URLSearchParams($page.url.search);
+      const searchQuery = urlParams.get('q');
+
+      const response = await fetch('/api/search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           cookies: $avitoCookies,
-          params: Object.fromEntries(params.entries())
+          params: {
+            name: searchQuery,
+            locationId: $selectedCity.id,
+            categoryId: urlParams.get('categoryId') ? parseInt(urlParams.get('categoryId')!) : undefined,
+            verticalCategoryId: urlParams.get('verticalCategoryId') ? parseInt(urlParams.get('verticalCategoryId')!) : undefined,
+            pmin: urlParams.get('pmin') ? parseInt(urlParams.get('pmin')!) : undefined,
+            pmax: urlParams.get('pmax') ? parseInt(urlParams.get('pmax')!) : undefined,
+            d: urlParams.get('d') === '1' ? 1 : undefined,
+            view: 'gallery',
+            p: 1
+          }
         })
       });
-      
+
       const data = await response.json();
       if (data.error) {
-        error = 'Ошибка загрузки объявлений. Возможно, нужно обновить куки.';
+        error = 'Ошибка загрузки результатов';
         return;
       }
-      if (data.items) {
-        currentItems = data.items;
-        error = null;
-      }
+
+      currentItems = data.items || [];
     } catch (err) {
-      console.error('Error loading search items:', err);
-      error = 'Ошибка загрузки объявлений. Возможно, нужно обновить куки.';
+      console.error('Error loading search results:', err);
+      error = 'Ошибка загрузки результатов';
+    } finally {
+      loading = false;
     }
   }
 
   async function loadCityItems(cityId: number) {
+    loading = true;
+    error = null;
+
     try {
       const response = await fetch('/api/items', {
         method: 'POST',
@@ -72,23 +89,23 @@
         body: JSON.stringify({
           cookies: $avitoCookies,
           params: {
-            locationId: cityId.toString()
+            locationId: cityId
           }
         })
       });
-      
+
       const data = await response.json();
       if (data.error) {
-        error = 'Ошибка загрузки объявлений. Возможно, нужно обновить куки.';
+        error = 'Ошибка загрузки объявлений';
         return;
       }
-      if (data.items) {
-        currentItems = data.items;
-        error = null;
-      }
+
+      currentItems = data.items || [];
     } catch (err) {
       console.error('Error loading city items:', err);
-      error = 'Ошибка загрузки объявлений. Возможно, нужно обновить куки.';
+      error = 'Ошибка загрузки объявлений';
+    } finally {
+      loading = false;
     }
   }
 </script>
@@ -143,7 +160,9 @@
     
     <ItemsList 
       title={$page.url.search ? "Результаты поиска" : `Объявления в ${$selectedCity.name}`}
-      initialItems={currentItems} 
+      initialItems={currentItems}
+      {loading}
+      isSearch={$page.url.search ? true : false}
     />
   </main>
 </div>

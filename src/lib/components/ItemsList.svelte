@@ -7,32 +7,41 @@
 
   export let title: string;
   export let initialItems: AvitoItem[] = [];
+  export let items: AvitoItem[] = initialItems;
+  export let loading = false;
+  export let isSearch = false;
 
-  let loading = false;
   let offset = 0;
   let hasMore = true;
-  let items: AvitoItem[] = [];
   let error: string | null = null;
+  let recommendations: AvitoItem[] = [];
+  let recommendationsLoaded = false;
 
   $: {
     items = initialItems;
     offset = initialItems.length;
     hasMore = true;
+    recommendations = [];
+    recommendationsLoaded = false;
   }
 
   $: searchParams = $page.url.searchParams;
 
   async function loadMore() {
     if (loading || !hasMore) return;
-    
     loading = true;
     error = null;
     try {
       const params = new URLSearchParams(searchParams);
       params.set('offset', offset.toString());
       params.set('locationId', $selectedCity.id.toString());
-      
-      const response = await fetch('/api/items', {
+      let url = '/api/items';
+      let isSearchMode = false;
+      if (isSearch) {
+        url = '/api/search';
+        isSearchMode = true;
+      }
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -42,23 +51,25 @@
           params: Object.fromEntries(params.entries())
         })
       });
-      
       const data = await response.json();
-      
       if (data.error) {
         error = 'Ошибка загрузки объявлений. Возможно, нужно обновить куки.';
         return;
       }
-
       if (!data.items?.length) {
         hasMore = false;
+        if (isSearch && !recommendationsLoaded) {
+          await loadRecommendations();
+        }
       } else {
         const newItems = data.items.filter((newItem: AvitoItem) => 
           !items.some(existingItem => existingItem.id === newItem.id)
         );
-        
         if (newItems.length === 0) {
           hasMore = false;
+          if (isSearch && !recommendationsLoaded) {
+            await loadRecommendations();
+          }
         } else {
           items = [...items, ...newItems];
           offset += data.items.length;
@@ -73,6 +84,30 @@
     }
   }
 
+  async function loadRecommendations() {
+    recommendationsLoaded = true;
+    try {
+      const params = new URLSearchParams(searchParams);
+      params.set('locationId', $selectedCity.id.toString());
+      const response = await fetch('/api/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          cookies: $avitoCookies,
+          params: Object.fromEntries(params.entries())
+        })
+      });
+      const data = await response.json();
+      if (data.items?.length) {
+        recommendations = data.items;
+      }
+    } catch (err) {
+      console.error('Error loading recommendations:', err);
+    }
+  }
+
   let scrollHandler: () => void;
 
   function handleScroll() {
@@ -81,7 +116,6 @@
       document.documentElement.offsetHeight,
       document.documentElement.clientHeight
     );
-    
     if (
       window.innerHeight + window.scrollY >= scrollHeight - 1000 &&
       !loading &&
@@ -134,7 +168,25 @@
     <div class="py-4 text-center text-sm text-muted-foreground">Загрузка...</div>
   {/if}
 
-  {#if !hasMore && !error}
+  {#if !hasMore && !error && isSearch && recommendations.length > 0}
+    <div class="pt-8">
+      <h3 class="text-lg font-semibold mb-4">Вам также может понравиться</h3>
+      <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+        {#each recommendations.filter(item => 
+          !item.bannerId && 
+          item && 
+          item.title && 
+          item.urlPath && 
+          item.priceDetailed?.string &&
+          (item.images?.length > 0 || item.locationId)
+        ) as item (item.id)}
+          <ItemCard {item} />
+        {/each}
+      </div>
+    </div>
+  {/if}
+
+  {#if !hasMore && !error && !isSearch}
     <div class="py-4 text-center text-sm text-muted-foreground">Больше объявлений нет</div>
   {/if}
 </section> 
