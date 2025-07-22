@@ -303,67 +303,70 @@
                     </span>
                   {/if}
                 </div>
-                {#if review.itemTitle}
-                  <div class="mt-2 text-sm text-muted-foreground">
-                    Товар: {review.itemTitle}
-                  </div>
-                {/if}
-                {#if review.stageTitle}
-                  <div class="mt-1 text-sm text-muted-foreground">
-                    {review.stageTitle}
-                  </div>
-                {/if}
-                {#if review.textSections?.length}
-                  <div class="mt-2 text-sm whitespace-pre-line">
-                    {review.textSections[0].text}
-                  </div>
-                {/if}
-                {#if review.images && review.images.length > 0}
-                  <div class="mt-3 flex flex-wrap gap-2">
-                    {#each review.images as image, i}
-                      <button 
-                        class="relative block w-24 h-24 rounded-lg overflow-hidden hover:opacity-90 transition-opacity"
-                        on:click={() => showImage(review.images, i)}
-                      >
-                        <img
-                          src={image['256x192']}
-                          alt="Фото к отзыву"
-                          class="w-full h-full object-cover"
-                        />
-                      </button>
-                    {/each}
-                  </div>
-                {/if}
+              </div>
+            </div>
 
-                {#if review.answer}
-                  <div class="mt-4 pl-4 border-l-2 border-muted">
-                    <div class="flex items-start gap-3">
+            <div class="mt-4">
+              {#if review.itemTitle}
+                <div class="text-sm text-muted-foreground">
+                  Товар: {review.itemTitle}
+                </div>
+              {/if}
+              {#if review.stageTitle}
+                <div class="mt-1 text-sm text-muted-foreground">
+                  {review.stageTitle}
+                </div>
+              {/if}
+              {#if review.textSections?.length}
+                <div class="mt-2 text-sm whitespace-pre-line">
+                  {review.textSections[0].text}
+                </div>
+              {/if}
+              {#if review.images && review.images.length > 0}
+                <div class="mt-3 flex flex-wrap gap-2">
+                  {#each review.images as image, i}
+                    <button 
+                      class="relative block w-24 h-24 rounded-lg overflow-hidden hover:opacity-90 transition-opacity"
+                      on:click={() => showImage(review.images, i)}
+                    >
                       <img
-                        src={review.answer.avatar}
-                        alt={review.answer.title}
-                        class="h-8 w-8 rounded-full object-cover"
+                        src={image['256x192']}
+                        alt="Фото к отзыву"
+                        class="w-full h-full object-cover"
                       />
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                          <a 
-                            href={review.answer.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="font-medium text-primary"
-                          >
-                            {review.answer.title}
-                          </a>
-                          <span class="text-sm text-muted-foreground">·</span>
-                          <span class="text-sm text-muted-foreground">{review.answer.answered}</span>
-                        </div>
-                        <div class="mt-2 text-sm whitespace-pre-line">
-                          {review.answer.text}
-                        </div>
+                    </button>
+                  {/each}
+                </div>
+              {/if}
+
+              {#if review.answer}
+                <div class="mt-4 pl-4 border-l-2 border-muted">
+                  <div class="flex items-start gap-3">
+                    <img
+                      src={review.answer.avatar}
+                      alt={review.answer.title}
+                      class="h-8 w-8 rounded-full object-cover"
+                    />
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <a 
+                          href={review.answer.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="font-medium text-primary"
+                        >
+                          {review.answer.title}
+                        </a>
+                        <span class="text-sm text-muted-foreground">·</span>
+                        <span class="text-sm text-muted-foreground">{review.answer.answered}</span>
                       </div>
                     </div>
                   </div>
-                {/if}
-              </div>
+                  <div class="mt-2 text-sm whitespace-pre-line">
+                    {review.answer.text}
+                  </div>
+                </div>
+              {/if}
             </div>
           </div>
         {:else}
