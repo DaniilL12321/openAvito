@@ -61,10 +61,10 @@
   tabindex="0"
   transition:fly={{ duration: 200, opacity: 0 }}
 >
-  <div class="relative h-full w-full flex items-center justify-center p-4">
+  <div class="relative h-full w-full flex items-center justify-center p-4" on:click|self={close}>
     <button
       class="absolute right-4 top-4 h-10 w-10 hidden md:flex items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95 z-10"
-      on:click={close}
+      on:click|stopPropagation={close}
     >
       <X class="h-5 w-5" />
       <span class="sr-only">Закрыть</span>
@@ -94,12 +94,16 @@
       </div>
     {/if}
 
-    <img
-      src={images[currentIndex]['1280x960']}
-      alt="Фото к отзыву"
-      class="max-h-full max-w-full object-contain"
-      on:click|stopPropagation
-    />
+    <div class="relative max-h-full max-w-full">
+      <img
+        src={images[currentIndex]['1280x960']}
+        alt="Фото к отзыву"
+        class="max-h-full max-w-full object-contain touch-pan-x"
+        on:touchstart|stopPropagation
+        on:touchmove|stopPropagation
+        on:touchend|stopPropagation
+      />
+    </div>
 
     <div class="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 md:hidden">
       <div class="flex items-center gap-4">
@@ -116,7 +120,7 @@
 
         <button
           class="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95"
-          on:click={close}
+          on:click|stopPropagation={close}
         >
           <X class="h-5 w-5" />
           <span class="sr-only">Закрыть</span>

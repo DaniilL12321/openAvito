@@ -67,6 +67,9 @@
   let modalContainer: HTMLDivElement;
   let selectedImages: Review['images'] | null = null;
   let selectedImageIndex = 0;
+  let touchStartX = 0;
+  let touchEndX = 0;
+  let isSwiping = false;
 
   const sortOptions = [
     { value: 'date_desc', label: 'Сначала новые' },
@@ -139,10 +142,56 @@
     }
   }
 
+  function handleTouchStart(event: TouchEvent) {
+    touchStartX = event.touches[0].clientX;
+    isSwiping = true;
+  }
+
+  function handleTouchMove(event: TouchEvent) {
+    if (!isSwiping) return;
+    touchEndX = event.touches[0].clientX;
+  }
+
+  function handleTouchEnd() {
+    if (!isSwiping) return;
+    
+    const swipeDistance = touchEndX - touchStartX;
+    const minSwipeDistance = 50;
+
+    if (Math.abs(swipeDistance) > minSwipeDistance && selectedImages) {
+      if (swipeDistance > 0 && selectedImageIndex > 0) {
+        selectedImageIndex--;
+        preloadImages(selectedImageIndex);
+      } else if (swipeDistance < 0 && selectedImageIndex < selectedImages.length - 1) {
+        selectedImageIndex++;
+        preloadImages(selectedImageIndex);
+      }
+    }
+
+    isSwiping = false;
+    touchStartX = 0;
+    touchEndX = 0;
+  }
+
+  function preloadImages(currentIndex: number) {
+    if (!selectedImages) return;
+    
+    if (currentIndex > 0) {
+      const prevImg = new Image();
+      prevImg.src = selectedImages[currentIndex - 1]['1280x960'];
+    }
+    
+    if (currentIndex < selectedImages.length - 1) {
+      const nextImg = new Image();
+      nextImg.src = selectedImages[currentIndex + 1]['1280x960'];
+    }
+  }
+
   function showImage(images: Review['images'], index: number) {
     if (images) {
       selectedImages = images;
       selectedImageIndex = index;
+      preloadImages(index);
     }
   }
 
@@ -155,7 +204,21 @@
     if (event.key === 'Escape') {
       event.stopPropagation();
       close();
+    } else if (selectedImages) {
+      if (event.key === 'ArrowRight' && selectedImageIndex < selectedImages.length - 1) {
+        event.stopPropagation();
+        selectedImageIndex++;
+        preloadImages(selectedImageIndex);
+      } else if (event.key === 'ArrowLeft' && selectedImageIndex > 0) {
+        event.stopPropagation();
+        selectedImageIndex--;
+        preloadImages(selectedImageIndex);
+      }
     }
+  }
+
+  $: if (selectedImages && selectedImageIndex >= 0) {
+    preloadImages(selectedImageIndex);
   }
 
   function close() {
@@ -394,5 +457,8 @@
     images={selectedImages}
     currentIndex={selectedImageIndex}
     on:close={handleImageViewerClose}
+    on:touchstart={handleTouchStart}
+    on:touchmove={handleTouchMove}
+    on:touchend={handleTouchEnd}
   />
 {/if} 
