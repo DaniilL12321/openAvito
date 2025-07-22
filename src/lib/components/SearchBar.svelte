@@ -1,19 +1,17 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import { selectedCity, avitoCookies } from '$lib/stores';
-  import { Search } from 'lucide-svelte';
+  import { selectedCity, avitoCookies, query } from '$lib/stores';
+  import { Search, HelpCircle } from 'lucide-svelte';
   import type { SearchParams } from '$lib/types';
   import SearchFilters from './SearchFilters.svelte';
   import { onMount } from 'svelte';
   import { fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
-  import { HelpCircle } from 'lucide-svelte';
 
   let searchInput: HTMLInputElement;
   let filtersContainer: HTMLDivElement;
   let suggestionsContainer: HTMLDivElement;
-  let searchQuery = '';
   let suggestions: any[] = [];
   let showSuggestions = false;
   let showFilters = false;
@@ -21,9 +19,9 @@
 
   onMount(() => {
     const urlParams = new URLSearchParams($page.url.search);
-    searchQuery = urlParams.get('q') || '';
+    $query = urlParams.get('q') || '';
     searchParams = {
-      name: searchQuery,
+      name: $query,
       categoryId: urlParams.get('categoryId') ? parseInt(urlParams.get('categoryId')!) : undefined,
       verticalCategoryId: urlParams.get('verticalCategoryId') ? parseInt(urlParams.get('verticalCategoryId')!) : undefined,
       pmin: urlParams.get('pmin') ? parseInt(urlParams.get('pmin')!) : undefined,
@@ -62,7 +60,7 @@
       clearTimeout(suggestionsTimeout);
     }
 
-    if (searchQuery.length < 2) {
+    if ($query.length < 2) {
       suggestions = [];
       showSuggestions = false;
       return;
@@ -77,7 +75,7 @@
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            query: searchQuery,
+            query: $query,
             locationId: $selectedCity.id,
             cookies: $avitoCookies
           })
@@ -93,16 +91,16 @@
   }
 
   function handleSuggestionClick(suggestion: any) {
-    searchQuery = suggestion.text_item.title;
+    $query = suggestion.text_item.title;
     showSuggestions = false;
     handleSearch();
   }
 
   function handleSearch() {
     const params = new URLSearchParams();
-    if (searchQuery) {
-      params.set('q', searchQuery);
-      searchParams.name = searchQuery;
+    if ($query) {
+      params.set('q', $query);
+      searchParams.name = $query;
     }
     if (searchParams.categoryId) {
       params.set('categoryId', searchParams.categoryId.toString());
@@ -131,7 +129,7 @@
   }
 
   function handleSearchFocus() {
-    if (searchQuery.length >= 2) {
+    if ($query.length >= 2) {
       showFilters = false;
       handleInput();
     }
@@ -152,7 +150,7 @@
       bind:this={searchInput}
       type="text"
       placeholder="Поиск по объявлениям"
-      bind:value={searchQuery}
+      bind:value={$query}
       on:input={handleInput}
       on:focus={handleSearchFocus}
       on:keydown={(e) => e.key === 'Enter' && handleSearch()}

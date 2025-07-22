@@ -1,7 +1,22 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import { goto } from '$app/navigation';
+  import { query } from '$lib/stores';
 
-  $: isHome = $page.url.pathname === '/';
+  $: isHome = $page.url.pathname === '/' && $page.url.search === '';
+
+  function handleClick(e: MouseEvent) {
+    if (isHome) {
+      e.preventDefault();
+      return;
+    }
+    
+    if ($page.url.search) {
+      e.preventDefault();
+      query.set('');
+      goto('/', { replaceState: true });
+    }
+  }
 </script>
 
 <a
@@ -9,6 +24,7 @@
   title="OpenAvito — альтернативный клиент"
   class="inline-flex items-center gap-3 hover:opacity-90 transition-opacity"
   class:pointer-events-none={isHome}
+  on:click={handleClick}
 >
   <div class="relative w-[40px] h-[40px]">
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">

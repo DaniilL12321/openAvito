@@ -37,3 +37,5 @@ showInactiveItems.subscribe(value => {
 export const favorites = writable<AvitoItem[]>([]);
 export const isFavoritesLoading = writable<boolean>(false);
 export const favoritesError = writable<string | null>(null); 
+
+export const query = writable(''); 
