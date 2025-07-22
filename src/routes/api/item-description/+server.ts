@@ -141,6 +141,12 @@ export const POST: RequestHandler = async ({ request }) => {
       });
     }
 
+    const locationMatch = html.match(/data-map-lat="([^"]+)"[^>]*data-map-lon="([^"]+)"/);
+    const location = locationMatch ? {
+      lat: parseFloat(locationMatch[1]),
+      lon: parseFloat(locationMatch[2])
+    } : null;
+
     const descriptionMatch = html.match(/<div[^>]*data-marker="item-view\/item-description"[^>]*>(.*?)<\/div>/s);
     let description = '';
     
@@ -239,7 +245,7 @@ export const POST: RequestHandler = async ({ request }) => {
       sellerInfo.itemsCount = itemsCountMatch[1];
     }
 
-    return json({ description, sellerInfo });
+    return json({ description, sellerInfo, location });
   } catch (error) {
     console.error('Error fetching item description:', error);
     return json({ error: 'Failed to fetch item description' }, { status: 500 });

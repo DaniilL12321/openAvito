@@ -109,7 +109,6 @@
       if (data.reviews) {
         let filteredReviews = data.reviews;
         
-        // Клиентская фильтрация только для изображений и доставки
         if (filters.onlyWithImages) {
           filteredReviews = filteredReviews.filter((review: Review) => review.images && review.images.length > 0);
         }
@@ -220,8 +219,8 @@
       </button>
     </div>
 
-    <div class="p-4 md:p-6">
-      <div class="rounded-2xl border bg-card p-4 text-card-foreground md:p-6">
+    <div class="p-4">
+      <div class="rounded-2xl border bg-card p-4 text-card-foreground">
         <div class="flex items-center gap-4 mb-6">
           <div class="text-4xl font-bold">{scoreFloat}</div>
           <div class="flex-1">
@@ -282,12 +281,12 @@
             <div class="flex items-start gap-3">
               <img
                 src={review.avatar}
-                alt={decodeHtmlEntities(review.title)}
+                alt={review.title}
                 class="h-10 w-10 rounded-full object-cover"
               />
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
-                  <span class="font-medium">{decodeHtmlEntities(review.title)}</span>
+                  <span class="font-medium">{review.title}</span>
                   <span class="text-sm text-muted-foreground">·</span>
                   <span class="text-sm text-muted-foreground">{review.titleCaption}</span>
                 </div>
@@ -341,7 +340,7 @@
                     <div class="flex items-start gap-3">
                       <img
                         src={review.answer.avatar}
-                        alt={decodeHtmlEntities(review.answer.title)}
+                        alt={review.answer.title}
                         class="h-8 w-8 rounded-full object-cover"
                       />
                       <div class="flex-1 min-w-0">
@@ -352,7 +351,7 @@
                             rel="noopener noreferrer"
                             class="font-medium text-primary"
                           >
-                            {decodeHtmlEntities(review.answer.title)}
+                            {review.answer.title}
                           </a>
                           <span class="text-sm text-muted-foreground">·</span>
                           <span class="text-sm text-muted-foreground">{review.answer.answered}</span>

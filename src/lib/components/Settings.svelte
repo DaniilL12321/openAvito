@@ -44,7 +44,7 @@
   <div use:portal>
     <div class="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" on:click={handleClose} transition:fly={{ duration: 200, opacity: 0 }}>
       <div
-        class="fixed bottom-0 z-50 h-[85vh] w-full overflow-y-auto border bg-background p-4 shadow-lg duration-200 rounded-t-3xl md:bottom-auto md:left-[50%] md:top-[50%] md:h-auto md:max-h-[90vh] md:w-[calc(100vw-2rem)] md:max-w-lg md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-3xl md:p-6 lg:p-8"
+        class="fixed bottom-0 z-50 h-[85vh] w-full overflow-y-auto border bg-background p-4 shadow-lg duration-200 rounded-t-3xl md:bottom-auto md:left-[50%] md:top-[50%] md:h-auto md:max-h-[90vh] md:w-[calc(100vw-2rem)] md:max-w-lg md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-3xl lg:p-8"
         on:click|stopPropagation
         transition:fly={{ y: 100, duration: 200, opacity: 1, easing: cubicOut }}
       >

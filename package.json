@@ -36,7 +36,9 @@
 	"dependencies": {
 		"@floating-ui/dom": "^1.7.2",
 		"@types/lodash": "^4.17.20",
+		"@types/mapbox-gl": "^3.4.1",
 		"lodash": "^4.17.21",
+		"mapbox-gl": "^3.13.0",
 		"puppeteer": "^24.14.0",
 		"shadcn-svelte": "^1.0.6"
 	}

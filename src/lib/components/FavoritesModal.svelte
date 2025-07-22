@@ -233,7 +233,7 @@
       </button>
     </div>
 
-    <div class="p-4 md:p-6 lg:p-8">
+    <div class="p-4 lg:p-8">
       <div class="space-y-6">
         {#if $favoritesError}
           <div class="rounded-xl bg-destructive/10 p-4 text-destructive">

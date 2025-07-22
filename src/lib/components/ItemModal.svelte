@@ -2,10 +2,11 @@
   import { createEventDispatcher, onMount } from 'svelte';
   import type { AvitoItem } from '$lib/types';
   import { selectedCity, cities, avitoCookies } from '$lib/stores';
-  import { X, ChevronLeft, ChevronRight, MapPin, Star, ExternalLink, AlertCircle } from 'lucide-svelte';
-  import { fly } from 'svelte/transition';
+  import { X, ChevronLeft, ChevronRight, MapPin, Star, ExternalLink, AlertCircle, ChevronDown } from 'lucide-svelte';
+  import { fly, slide } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import ReviewsModal from './ReviewsModal.svelte';
+  import Map from './Map.svelte';
 
   interface RatingEntry {
     count: number;
@@ -31,6 +32,16 @@
     sellerId: string;
   }
 
+  interface LocationDetails {
+    shortAddress: string;
+    fullAddress: string | null;
+  }
+
+  interface Location {
+    lat: number;
+    lon: number;
+  }
+
   export let item: AvitoItem;
   
   const dispatch = createEventDispatcher();
@@ -43,10 +54,50 @@
   let isClosed = false;
   let showReviews = false;
   let modalContainer: HTMLDivElement;
+  let location: Location | null = null;
+  let showMap = false;
+
+  async function getLocationDetails(lat: number, lon: number): Promise<LocationDetails> {
+    try {
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${import.meta.env.VITE_MAPBOX_TOKEN}&language=ru`
+      );
+      const data = await response.json();
+      
+      if (data.features && data.features.length > 0) {
+        const fullAddress = data.features[0].place_name;
+        const shortMatch = fullAddress.match(/Ярославль(?:,\s*([^,]+))?/);
+        const shortAddress = shortMatch 
+          ? shortMatch[1] 
+            ? `Ярославль, ${shortMatch[1]}` 
+            : 'Ярославль'
+          : fullAddress;
+
+        return {
+          shortAddress,
+          fullAddress
+        };
+      }
+      
+      return {
+        shortAddress: getLocationString(item),
+        fullAddress: null
+      };
+    } catch (error) {
+      console.error('Error fetching location details:', error);
+      return {
+        shortAddress: getLocationString(item),
+        fullAddress: null
+      };
+    }
+  }
+
+  let locationDetails: LocationDetails | null = null;
 
   onMount(async () => {
     modalContainer?.focus();
     loadingDescription = true;
+    
     try {
       const response = await fetch('/api/item-description', {
         method: 'POST',
@@ -65,6 +116,10 @@
       }
       if (data.sellerInfo) {
         sellerInfo = data.sellerInfo;
+      }
+      if (data.location) {
+        location = data.location;
+        locationDetails = await getLocationDetails(data.location.lat, data.location.lon);
       }
       isDeleted = data.isDeleted || false;
       isClosed = data.isClosed || false;
@@ -177,7 +232,7 @@
       </button>
     </div>
 
-    <div class="p-4 md:p-6 lg:p-8">
+    <div class="p-4 lg:p-8">
       <div class="grid min-w-0 gap-4 md:grid-cols-2 md:gap-6">
         <div class="space-y-4 min-w-0">
           <div class="relative aspect-square overflow-hidden rounded-2xl bg-muted">
@@ -249,7 +304,7 @@
         </div>
 
         <div class="space-y-4 min-w-0 md:space-y-6">
-          <div>
+          <div class="space-y-4 min-w-0">
             <div class="flex flex-wrap items-center gap-2 md:gap-4">
               <p class="text-2xl font-bold md:text-3xl">{item.priceDetailed.string} ₽</p>
               {#if item.priceDetailed.wasLowered}
@@ -264,134 +319,160 @@
               {/if}
             </div>
             
-            {#if getLocationString(item)}
-              <p class="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
-                <MapPin class="h-4 w-4" />
-                {getLocationString(item)}
-              </p>
-            {/if}
-          </div>
-
-          {#if loadingDescription}
-            <div class="rounded-2xl border bg-card p-4 text-card-foreground md:p-6">
-              <div class="text-sm text-muted-foreground">Загрузка описания...</div>
-            </div>
-          {:else if description}
-            <div class="rounded-2xl border bg-card p-4 text-card-foreground md:p-6">
-              <h3 class="mb-3 font-semibold md:mb-4">Описание</h3>
-              {#if description.includes('<ul>')}
-                <div class="text-sm space-y-4">
-                  {@html description
-                    .replace(/([А-Яа-я ]+):<ul/g, '<div class="font-medium mb-2">$1:</div><ul')
-                    .replace(/<ul>/g, '<ul class="space-y-2">')
-                    .replace(/<li>/g, '<li class="flex gap-2 items-baseline"><span class="text-muted-foreground">•</span>')
-                    .replace(/<\/li>/g, '</li>')
-                    .replace(/:\s*<\/ul>/g, '</ul>')
-                    .replace(/\n/g, '<br>')
-                  }
-                </div>
-              {:else}
-                <p class="whitespace-pre-line text-sm">{description}</p>
-              {/if}
-            </div>
-          {:else if descriptionError}
-            <div class="rounded-2xl bg-destructive/10 p-4 text-destructive md:p-6">
-              Не удалось загрузить описание
-            </div>
-          {/if}
-
-          {#if sellerInfo}
-            <div class="rounded-2xl border bg-card p-4 text-card-foreground md:p-6">
-              <h3 class="font-semibold">Информация о продавце</h3>
-              <div class="flex items-start gap-4">
-                {#if sellerInfo.avatar}
-                  <img
-                    src={sellerInfo.avatar}
-                    alt={decodeHtmlEntities(sellerInfo.name)}
-                    class="h-12 w-12 rounded-full object-cover md:h-16 md:w-16"
-                  />
-                {/if}
-                <div class="flex-1 min-w-0">
-                  <div class="flex flex-wrap items-center gap-1 md:gap-2">
-                    <a
-                      href={sellerInfo.profileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="truncate font-medium text-primary"
-                    >
-                      {decodeHtmlEntities(sellerInfo.name)}
-                    </a>
-                    <span class="text-sm text-muted-foreground">·</span>
-                    <span class="text-sm text-muted-foreground truncate">{sellerInfo.type}</span>
-                    {#if sellerInfo.registrationDate}
-                      <span class="text-sm text-muted-foreground">·</span>
-                      <span class="text-sm text-muted-foreground truncate">{sellerInfo.registrationDate}</span>
-                    {/if}
-                  </div>
-                  
-                  {#if sellerInfo.rating}
-                    <div class="flex flex-wrap items-center gap-2">
-                      <span class="font-medium">{sellerInfo.rating}</span>
-                      <div class="flex">
-                        {#each Array(5) as _, i}
-                          <Star
-                            class="h-4 w-4 {i < Math.round(parseFloat(sellerInfo.rating.replace(',', '.')))
-                              ? 'fill-primary text-primary'
-                              : 'fill-muted text-muted'}"
-                          />
-                        {/each}
-                      </div>
-                      {#if sellerInfo.reviewsCount}
-                        <button
-                          class="text-sm text-primary"
-                          on:click={() => showReviews = true}
-                        >
-                          {sellerInfo.reviewsCount} отзывов
-                        </button>
+            {#if location}
+              <div class="rounded-2xl border bg-card overflow-hidden">
+                <button
+                  class="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-colors"
+                  on:click={() => showMap = !showMap}
+                >
+                  <div class="flex items-start gap-2">
+                    <MapPin class="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <div class="text-left">
+                      {#if locationDetails?.fullAddress}
+                        <p class="text-sm">{locationDetails.fullAddress}</p>
+                      {:else}
+                        <p class="text-sm">{locationDetails?.shortAddress || ''}</p>
                       {/if}
                     </div>
+                  </div>
+                  <ChevronDown 
+                    class="h-4 w-4 text-muted-foreground transition-transform duration-200 flex-shrink-0"
+                    style="transform: rotate({showMap ? '180deg' : '0deg'})"
+                  />
+                </button>
+
+                {#if showMap}
+                  <div 
+                    transition:slide={{ duration: 200 }}
+                    class="border-t"
+                  >
+                    <Map lat={location.lat} lon={location.lon} />
+                  </div>
+                {/if}
+              </div>
+            {/if}
+
+            {#if loadingDescription}
+              <div class="rounded-2xl border bg-card p-4 text-card-foreground">
+                <div class="text-sm text-muted-foreground">Загрузка описания...</div>
+              </div>
+            {:else if description}
+              <div class="rounded-2xl border bg-card p-4 text-card-foreground">
+                <h3 class="mb-3 font-semibold md:mb-4">Описание</h3>
+                {#if description.includes('<ul>')}
+                  <div class="text-sm space-y-4">
+                    {@html description
+                      .replace(/([А-Яа-я ]+):<ul/g, '<div class="font-medium mb-2">$1:</div><ul')
+                      .replace(/<ul>/g, '<ul class="space-y-2">')
+                      .replace(/<li>/g, '<li class="flex gap-2 items-baseline"><span class="text-muted-foreground">•</span>')
+                      .replace(/<\/li>/g, '</li>')
+                      .replace(/:\s*<\/ul>/g, '</ul>')
+                      .replace(/\n/g, '<br>')
+                    }
+                  </div>
+                {:else}
+                  <p class="whitespace-pre-line text-sm">{description}</p>
+                {/if}
+              </div>
+            {:else if descriptionError}
+              <div class="rounded-2xl bg-destructive/10 p-4 text-destructive">
+                Не удалось загрузить описание
+              </div>
+            {/if}
+
+            {#if sellerInfo}
+              <div class="rounded-2xl border bg-card p-4 text-card-foreground">
+                <h3 class="font-semibold">Информация о продавце</h3>
+                <div class="flex items-start gap-4">
+                  {#if sellerInfo.avatar}
+                    <img
+                      src={sellerInfo.avatar}
+                      alt={decodeHtmlEntities(sellerInfo.name)}
+                      class="h-12 w-12 rounded-full object-cover md:h-16 md:w-16"
+                    />
+                  {/if}
+                  <div class="flex-1 min-w-0">
+                    <div class="flex flex-wrap items-center gap-1 md:gap-2">
+                      <a
+                        href={sellerInfo.profileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="truncate font-medium text-primary"
+                      >
+                        {decodeHtmlEntities(sellerInfo.name)}
+                      </a>
+                      <span class="text-sm text-muted-foreground">·</span>
+                      <span class="text-sm text-muted-foreground truncate">{sellerInfo.type}</span>
+                      {#if sellerInfo.registrationDate}
+                        <span class="text-sm text-muted-foreground">·</span>
+                        <span class="text-sm text-muted-foreground truncate">{sellerInfo.registrationDate}</span>
+                      {/if}
+                    </div>
+                    
+                    {#if sellerInfo.rating}
+                      <div class="flex flex-wrap items-center gap-2">
+                        <span class="font-medium">{sellerInfo.rating}</span>
+                        <div class="flex">
+                          {#each Array(5) as _, i}
+                            <Star
+                              class="h-4 w-4 {i < Math.round(parseFloat(sellerInfo.rating.replace(',', '.')))
+                                ? 'fill-primary text-primary'
+                                : 'fill-muted text-muted'}"
+                            />
+                          {/each}
+                        </div>
+                        {#if sellerInfo.reviewsCount}
+                          <button
+                            class="text-sm text-primary"
+                            on:click={() => showReviews = true}
+                          >
+                            {sellerInfo.reviewsCount} отзывов
+                          </button>
+                        {/if}
+                      </div>
+                    {/if}
+                  </div>
+                </div>
+
+                {#if sellerInfo.badges && sellerInfo.badges.length > 0}
+                  <div class="flex flex-wrap gap-2 py-2">
+                    {#each sellerInfo.badges as badge}
+                      <span class="rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary md:px-4 md:py-2">
+                        {decodeHtmlEntities(badge)}
+                      </span>
+                    {/each}
+                  </div>
+                {/if}
+
+                <div class="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                  {#if sellerInfo.itemsCount}
+                    <a
+                      href={sellerInfo.itemsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-primary hover:underline"
+                    >
+                      {sellerInfo.itemsCount} объявлений
+                    </a>
+                  {/if}
+                  {#if sellerInfo.responseTime}
+                    <span>{sellerInfo.responseTime}</span>
                   {/if}
                 </div>
               </div>
+            {/if}
 
-              {#if sellerInfo.badges && sellerInfo.badges.length > 0}
-                <div class="flex flex-wrap gap-2 py-2">
-                  {#each sellerInfo.badges as badge}
-                    <span class="rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary md:px-4 md:py-2">
-                      {decodeHtmlEntities(badge)}
-                    </span>
-                  {/each}
-                </div>
-              {/if}
-
-              <div class="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                {#if sellerInfo.itemsCount}
-                  <a
-                    href={sellerInfo.itemsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-primary"
-                  >
-                    {sellerInfo.itemsCount} объявлений
-                  </a>
-                {/if}
-                {#if sellerInfo.responseTime}
-                  <span>{sellerInfo.responseTime}</span>
-                {/if}
-              </div>
+            <div class="flex items-center gap-4 pb-20 md:pb-0">
+              <a
+                href="https://www.avito.ru{item.urlPath}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 md:px-6 md:py-3"
+              >
+                Открыть на Авито
+                <ExternalLink class="h-4 w-4" />
+              </a>
             </div>
-          {/if}
-
-          <div class="flex items-center gap-4 pb-20 md:pb-0">
-            <a
-              href="https://www.avito.ru{item.urlPath}"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 md:px-6 md:py-3"
-            >
-              Открыть на Авито
-              <ExternalLink class="h-4 w-4" />
-            </a>
           </div>
         </div>
       </div>
@@ -401,7 +482,7 @@
 
 {#if showReviews && sellerInfo && sellerInfo.ratingStat && sellerInfo.scoreFloat !== null}
   <ReviewsModal
-    sellerName={decodeHtmlEntities(sellerInfo.name)}
+    sellerName={sellerInfo.name}
     ratingStat={sellerInfo.ratingStat}
     scoreFloat={sellerInfo.scoreFloat}
     totalReviews={parseInt(sellerInfo.reviewsCount)}
