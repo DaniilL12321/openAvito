@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request }) => {
-  const { cookies, locationID, query } = await request.json();
+  const { cookies, locationId, query } = await request.json();
   
   try {
     const response = await fetch('https://www.avito.ru/web/3/suggest', {
@@ -22,8 +22,8 @@ export const POST: RequestHandler = async ({ request }) => {
         'Cookie': cookies || ''
       },
       body: JSON.stringify({
-        presentationType: 'serp',
-        locationID: locationID,
+        presentationType: query ? 'serp' : 'popular',
+        locationId: locationId,
         query: query
       })
     });

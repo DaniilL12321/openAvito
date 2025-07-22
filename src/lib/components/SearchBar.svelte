@@ -60,12 +60,6 @@
       clearTimeout(suggestionsTimeout);
     }
 
-    if ($query.length < 2) {
-      suggestions = [];
-      showSuggestions = false;
-      return;
-    }
-
     showFilters = false;
     suggestionsTimeout = setTimeout(async () => {
       try {
@@ -83,7 +77,7 @@
         
         const data = await response.json();
         suggestions = data.result || [];
-        showSuggestions = suggestions.length > 0;
+        showSuggestions = true;
       } catch (error) {
         console.error('Error fetching suggestions:', error);
       }
@@ -129,10 +123,8 @@
   }
 
   function handleSearchFocus() {
-    if ($query.length >= 2) {
-      showFilters = false;
-      handleInput();
-    }
+    showFilters = false;
+    handleInput();
   }
 
   function toggleFilters() {
@@ -163,7 +155,7 @@
     >
       Фильтры
     </button>
-    <div class="absolute right-20 top-1/2 -translate-y-1/2 group" tabindex="0">
+    <div class="absolute right-20 top-1/2 -translate-y-1/2 mr-2 group" tabindex="0">
       <HelpCircle class="w-5 h-5 text-muted-foreground cursor-pointer" />
       <div class="pointer-events-none absolute top-full z-50 mt-2 w-max min-w-[220px] max-w-[310px] translate-x-[-26.7vh]  rounded-xl bg-popover px-4 py-2 text-xs text-muted-foreground shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-200 ring-1">
         Чтобы исключить слово из поиска, добавьте <span class="font-mono">--слово</span><br/>
