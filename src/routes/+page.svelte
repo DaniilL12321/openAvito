@@ -56,7 +56,7 @@
             pmax: urlParams.get('pmax') ? parseInt(urlParams.get('pmax')!) : undefined,
             d: urlParams.get('d') === '1' ? 1 : undefined,
             view: 'gallery',
-            p: 1
+            p: 1,
           }
         })
       });

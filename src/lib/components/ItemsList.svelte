@@ -33,46 +33,89 @@
     error = null;
     try {
       const params = new URLSearchParams(searchParams);
-      params.set('offset', offset.toString());
-      params.set('locationId', $selectedCity.id.toString());
+      const nextPage = Math.floor(offset / 50) + 2;
       let url = '/api/items';
       let isSearchMode = false;
       if (isSearch) {
         url = '/api/search';
         isSearchMode = true;
-      }
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          cookies: $avitoCookies,
-          params: Object.fromEntries(params.entries())
-        })
-      });
-      const data = await response.json();
-      if (data.error) {
-        error = 'Ошибка загрузки объявлений. Возможно, нужно обновить куки.';
-        return;
-      }
-      if (!data.items?.length) {
-        hasMore = false;
-        if (isSearch && !recommendationsLoaded) {
-          await loadRecommendations();
+        
+        const searchQuery = params.get('q');
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            cookies: $avitoCookies,
+            params: {
+              name: searchQuery,
+              locationId: $selectedCity.id,
+              categoryId: params.get('categoryId') ? parseInt(params.get('categoryId')!) : undefined,
+              verticalCategoryId: params.get('verticalCategoryId') ? parseInt(params.get('verticalCategoryId')!) : undefined,
+              pmin: params.get('pmin') ? parseInt(params.get('pmin')!) : undefined,
+              pmax: params.get('pmax') ? parseInt(params.get('pmax')!) : undefined,
+              d: params.get('d') === '1' ? 1 : undefined,
+              view: 'gallery',
+              p: nextPage
+            }
+          })
+        });
+        const data = await response.json();
+        if (data.error) {
+          error = 'Ошибка загрузки объявлений. Возможно, нужно обновить куки.';
+          return;
         }
-      } else {
-        const newItems = data.items.filter((newItem: AvitoItem) => 
-          !items.some(existingItem => existingItem.id === newItem.id)
-        );
-        if (newItems.length === 0) {
+        if (!data.items?.length) {
           hasMore = false;
-          if (isSearch && !recommendationsLoaded) {
+          if (!recommendationsLoaded) {
             await loadRecommendations();
           }
         } else {
-          items = [...items, ...newItems];
-          offset += data.items.length;
+          const newItems = data.items.filter((newItem: AvitoItem) => 
+            !items.some(existingItem => existingItem.id === newItem.id)
+          );
+          if (newItems.length === 0) {
+            hasMore = false;
+            if (!recommendationsLoaded) {
+              await loadRecommendations();
+            }
+          } else {
+            items = [...items, ...newItems];
+            offset += data.items.length;
+          }
+        }
+      } else {
+        params.set('p', nextPage.toString());
+        params.set('locationId', $selectedCity.id.toString());
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            cookies: $avitoCookies,
+            params: Object.fromEntries(params.entries())
+          })
+        });
+        const data = await response.json();
+        if (data.error) {
+          error = 'Ошибка загрузки объявлений. Возможно, нужно обновить куки.';
+          return;
+        }
+        if (!data.items?.length) {
+          hasMore = false;
+        } else {
+          const newItems = data.items.filter((newItem: AvitoItem) => 
+            !items.some(existingItem => existingItem.id === newItem.id)
+          );
+          if (newItems.length === 0) {
+            hasMore = false;
+          } else {
+            items = [...items, ...newItems];
+            offset += data.items.length;
+          }
         }
       }
     } catch (err) {
