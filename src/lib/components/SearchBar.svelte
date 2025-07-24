@@ -2,12 +2,19 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { selectedCity, avitoCookies, query } from '$lib/stores';
-  import { Search, HelpCircle } from 'lucide-svelte';
+  import { Search, HelpCircle, ChevronDown, Sliders, LayoutGrid } from 'lucide-svelte';
   import type { SearchParams } from '$lib/types';
   import SearchFilters from './SearchFilters.svelte';
   import { onMount } from 'svelte';
   import { fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
+  import { createEventDispatcher } from 'svelte';
+
+  const dispatch = createEventDispatcher<{
+    categorySelect: void;
+  }>();
+
+  export let selectedCategory: { name: string } = { name: 'Все категории' };
 
   let searchInput: HTMLInputElement;
   let filtersContainer: HTMLDivElement;
@@ -20,10 +27,13 @@
   onMount(() => {
     const urlParams = new URLSearchParams($page.url.search);
     $query = urlParams.get('q') || '';
+    const categoryId = urlParams.get('categoryId');
+    const verticalCategoryId = urlParams.get('verticalCategoryId');
+    
     searchParams = {
       name: $query,
-      categoryId: urlParams.get('categoryId') ? parseInt(urlParams.get('categoryId')!) : undefined,
-      verticalCategoryId: urlParams.get('verticalCategoryId') ? parseInt(urlParams.get('verticalCategoryId')!) : undefined,
+      categoryId: categoryId ? parseInt(categoryId) : undefined,
+      verticalCategoryId: verticalCategoryId ? parseInt(verticalCategoryId) : undefined,
       pmin: urlParams.get('pmin') ? parseInt(urlParams.get('pmin')!) : undefined,
       pmax: urlParams.get('pmax') ? parseInt(urlParams.get('pmax')!) : undefined,
       d: urlParams.get('d') === '1' ? 1 : undefined
@@ -39,18 +49,22 @@
   });
 
   function handleClickOutside(event: MouseEvent) {
-    if (filtersContainer && !filtersContainer.contains(event.target as Node)) {
-      showFilters = false;
-    }
-    if (suggestionsContainer && !suggestionsContainer.contains(event.target as Node)) {
+    const target = event.target as HTMLElement;
+    
+    if (showSuggestions && suggestionsContainer && !suggestionsContainer.contains(target) && !searchInput.contains(target)) {
       showSuggestions = false;
+    }
+    
+    if (showFilters && filtersContainer && !filtersContainer.contains(target)) {
+      showFilters = false;
     }
   }
 
   function handleKeydown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
-      showFilters = false;
       showSuggestions = false;
+      showFilters = false;
+      searchInput?.blur();
     }
   }
 
@@ -136,30 +150,49 @@
 </script>
 
 <div class="relative w-full" bind:this={filtersContainer}>
-  <div class="relative">
-    <Search class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-    <input
-      bind:this={searchInput}
-      type="text"
-      placeholder="Поиск по объявлениям"
-      bind:value={$query}
-      on:input={handleInput}
-      on:focus={handleSearchFocus}
-      on:keydown={(e) => e.key === 'Enter' && handleSearch()}
-      class="w-full pl-10 pr-20 py-3 rounded-full border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-    />
-
+  <div class="flex items-center gap-2">
     <button
-      class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-primary"
-      on:click|stopPropagation={toggleFilters}
+      class="flex-shrink-0 w-11 h-11 md:w-auto md:h-11 md:px-5 flex items-center justify-center rounded-full bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
+      on:click={() => dispatch('categorySelect')}
     >
-      Фильтры
+      <LayoutGrid class="block md:hidden h-5 w-5" />
+      <span class="hidden md:block text-[15px] font-medium truncate max-w-[200px]">
+        {selectedCategory.name}
+      </span>
     </button>
-    <div class="absolute right-20 top-1/2 -translate-y-1/2 mr-2 group" tabindex="0">
-      <HelpCircle class="w-5 h-5 text-muted-foreground cursor-pointer" />
-      <div class="pointer-events-none absolute top-full z-50 mt-2 w-max min-w-[220px] max-w-[310px] translate-x-[-26.7vh]  rounded-xl bg-popover px-4 py-2 text-xs text-muted-foreground shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-200 ring-1">
-        Чтобы исключить слово из поиска, добавьте <span class="font-mono">--слово</span><br/>
-        <span class="text-muted-foreground/70">Например: iphone --чехол</span>
+
+    <div class="relative flex-1">
+      <div class="flex items-center w-full h-11 px-4 rounded-full border border-input bg-background">
+        <div class="relative flex-1 flex items-center">
+          <Search class="h-5 w-5 text-muted-foreground flex-shrink-0" />
+          <input
+            bind:this={searchInput}
+            type="text"
+            placeholder="Поиск по объявлениям"
+            bind:value={$query}
+            on:input={handleInput}
+            on:focus={handleSearchFocus}
+            on:keydown={(e) => e.key === 'Enter' && handleSearch()}
+            class="w-full pl-2.5 bg-transparent border-none text-[15px] focus:outline-none focus:ring-0 placeholder:text-muted-foreground"
+          />
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <button
+            class="p-1.5 hover:bg-accent hover:text-accent-foreground rounded-full transition-colors"
+            on:click|stopPropagation={toggleFilters}
+            title="Фильтры"
+          >
+            <Sliders class="h-5 w-5" />
+          </button>
+          <div class="hidden md:block group" tabindex="0">
+            <HelpCircle class="w-5 h-5 text-muted-foreground cursor-pointer" />
+            <div class="pointer-events-none absolute top-full right-0 z-50 mt-2 w-max min-w-[220px] max-w-[310px] rounded-xl bg-popover px-4 py-2 text-xs text-muted-foreground shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-200 ring-1">
+              Чтобы исключить слово из поиска, добавьте <span class="font-mono">--слово</span><br/>
+              <span class="text-muted-foreground/70">Например: iphone --чехол</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -167,13 +200,13 @@
   {#if showSuggestions && suggestions.length > 0}
     <div 
       bind:this={suggestionsContainer}
-      class="absolute top-full left-0 right-0 md:mt-2 mt-4 bg-popover border border-border rounded-2xl shadow-lg overflow-hidden z-50"
+      class="absolute top-full left-0 right-0 mt-4 md:mt-2 bg-popover border border-border rounded-2xl shadow-lg overflow-hidden z-50"
       in:fly={{ y: -10, duration: 200, opacity: 1, easing: cubicOut }}
       out:fly={{ y: -10, duration: 150, opacity: 0, easing: cubicOut }}
     >
       {#each suggestions as suggestion}
         <button
-          class="w-full flex items-center gap-3 px-6 py-3 text-left hover:bg-accent hover:text-accent-foreground transition-colors"
+          class="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-accent hover:text-accent-foreground transition-colors"
           on:click={() => handleSuggestionClick(suggestion)}
         >
           {#if suggestion.text_item.icon}
@@ -185,7 +218,7 @@
               class="flex-shrink-0 dark:invert"
             />
           {/if}
-          <span class="truncate">{suggestion.text_item.title}</span>
+          <span class="truncate text-sm">{suggestion.text_item.title}</span>
         </button>
       {/each}
     </div>
@@ -193,7 +226,7 @@
 
   {#if showFilters}
     <div 
-      class="absolute top-full left-0 right-0 md:mt-2 mt-4 bg-popover border border-border rounded-2xl shadow-lg overflow-hidden z-50"
+      class="absolute top-full left-0 right-0 mt-4 md:mt-2 bg-popover border border-border rounded-2xl shadow-lg overflow-hidden z-50"
       in:fly={{ y: -10, duration: 200, opacity: 1, easing: cubicOut }}
       out:fly={{ y: -10, duration: 150, opacity: 0, easing: cubicOut }}
       on:click|stopPropagation

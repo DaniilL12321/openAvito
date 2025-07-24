@@ -41,13 +41,13 @@
         isSearchMode = true;
         
         const searchQuery = params.get('q');
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            cookies: $avitoCookies,
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          cookies: $avitoCookies,
             params: {
               name: searchQuery,
               locationId: $selectedCity.id,
@@ -59,36 +59,33 @@
               view: 'gallery',
               p: nextPage
             }
-          })
-        });
-        const data = await response.json();
-        if (data.error) {
-          error = 'Ошибка загрузки объявлений. Возможно, нужно обновить куки.';
-          return;
-        }
-        if (!data.items?.length) {
-          hasMore = false;
+        })
+      });
+      const data = await response.json();
+      if (data.error) {
+        error = 'Ошибка загрузки объявлений. Возможно, нужно обновить куки.';
+        return;
+      }
+      if (!data.items?.length) {
+        hasMore = false;
           if (!recommendationsLoaded) {
+          await loadRecommendations();
+        }
+      } else {
+        const newItems = data.items.filter((newItem: AvitoItem) => 
+          !items.some(existingItem => existingItem.id === newItem.id)
+        );
+        if (newItems.length === 0) {
+          hasMore = false;
+            if (!recommendationsLoaded) {
             await loadRecommendations();
           }
         } else {
-          const newItems = data.items.filter((newItem: AvitoItem) => 
-            !items.some(existingItem => existingItem.id === newItem.id)
-          );
-          if (newItems.length === 0) {
-            hasMore = false;
-            if (!recommendationsLoaded) {
-              await loadRecommendations();
-            }
-          } else {
-            items = [...items, ...newItems];
-            offset += data.items.length;
+          items = [...items, ...newItems];
+          offset += data.items.length;
           }
         }
       } else {
-        params.set('p', nextPage.toString());
-        params.set('locationId', $selectedCity.id.toString());
-        
         const response = await fetch(url, {
           method: 'POST',
           headers: {
@@ -96,7 +93,11 @@
           },
           body: JSON.stringify({
             cookies: $avitoCookies,
-            params: Object.fromEntries(params.entries())
+            params: {
+              deeplink: params.get('deeplink'),
+              locationId: $selectedCity.id,
+              p: nextPage
+            }
           })
         });
         const data = await response.json();

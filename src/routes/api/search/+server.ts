@@ -1,51 +1,71 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import type { SearchParams, AvitoItem } from '$lib/types';
+import type { SearchParams, SearchUrlParams, AvitoItem } from '$lib/types';
 
 function adaptItem(item: any): AvitoItem {
   return {
     id: item.id,
     category: {
       id: item.categoryId,
-      slug: item.category.slug
+      slug: item.category?.slug || ''
     },
-    images: item.images.map((img: any) => ({
-      '208x208': img['208x208'],
-      '236x236': img['236x236'],
-      '240x240': img['240x240'] || img['236x236'],
-      '416x416': img['416x416'],
-      '432x432': img['432x432'],
-      '472x472': img['472x472'],
-      '864x864': img['864x864']
+    images: (item.images || []).map((img: any) => ({
+      '208x208': img['208x208'] || '',
+      '236x236': img['236x236'] || '',
+      '240x240': img['240x240'] || img['236x236'] || '',
+      '416x416': img['416x416'] || '',
+      '432x432': img['432x432'] || '',
+      '472x472': img['472x472'] || '',
+      '864x864': img['864x864'] || ''
     })),
-    imagesAlt: item.title,
-    imagesCount: item.imagesCount,
+    imagesAlt: item.title || '',
+    imagesCount: item.imagesCount || 0,
     location: {
       id: item.locationId,
-      name: item.location.name,
-      namePrepositional: item.location.namePrepositional
+      name: item.location?.name || '',
+      namePrepositional: item.location?.namePrepositional || ''
     },
     locationId: item.locationId,
     priceDetailed: {
-      postfix: item.priceDetailed.postfix,
-      string: item.priceDetailed.string,
-      value: item.priceDetailed.value,
-      valueOld: item.priceDetailed.stringWithoutDiscount || '',
-      wasLowered: item.priceDetailed.wasLowered
+      postfix: item.priceDetailed?.postfix || '',
+      string: item.priceDetailed?.string || '',
+      value: item.priceDetailed?.value || 0,
+      valueOld: item.priceDetailed?.stringWithoutDiscount || '',
+      wasLowered: item.priceDetailed?.wasLowered || false
     },
-    title: item.title,
-    urlPath: item.urlPath,
+    title: item.title || '',
+    urlPath: item.urlPath || '',
     hasDiscount: item.discountPercent !== null,
-    delivery: item.delivery,
-    isFavorite: item.isFavorite
+    delivery: item.delivery || null,
+    isFavorite: item.isFavorite || false
   };
+}
+
+function parseDeeplink(deeplink: string): string {
+  try {
+    const searchParams = deeplink.replace('ru.avito://1/items/search', '');
+    return searchParams.replace(/%5B/g, '[').replace(/%5D/g, ']');
+  } catch (error) {
+    console.error('Error parsing deeplink:', error);
+    return '';
+  }
 }
 
 export const POST: RequestHandler = async ({ request }) => {
   const { cookies, params } = await request.json();
-  const searchParams = params as SearchParams;
   
   let apiUrl = 'https://www.avito.ru/web/1/js/items';
+  
+  if ('deeplink' in params) {
+    const searchParams = params as SearchUrlParams;
+    const searchQuery = parseDeeplink(searchParams.deeplink);
+    apiUrl += searchQuery;
+    console.log(apiUrl);
+    if (searchParams.p && searchParams.p > 1) {
+      apiUrl += `&p=${searchParams.p}`;
+    }
+  } else {
+    const searchParams = params as SearchParams;
   const queryParams = new URLSearchParams({
     _: '',
     view: searchParams.view || 'gallery',
@@ -83,6 +103,7 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 
   apiUrl += `?${queryParams.toString()}`;
+  }
 
   try {
     const response = await fetch(apiUrl, {

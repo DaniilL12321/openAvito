@@ -110,4 +110,24 @@ export const CATEGORIES: Category[] = [
       { id: 27, name: 'Комнаты', verticalId: 2 }
     ]
   }
-]; 
+];
+
+export interface AvitoCategory {
+  id: number;
+  name: string;
+  parentId?: number;
+  categoryId?: number;
+  deeplink?: string;
+  microcategoryId?: number;
+  nodeType?: string;
+  url?: string;
+  image?: {
+    '56x44': string;
+  };
+}
+
+export interface SearchUrlParams {
+  deeplink: string;
+  locationId: number;
+  p?: number;
+} 
