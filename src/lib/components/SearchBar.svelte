@@ -200,13 +200,13 @@
   {#if showSuggestions && suggestions.length > 0}
     <div 
       bind:this={suggestionsContainer}
-      class="absolute top-full left-0 right-0 mt-4 md:mt-2 bg-popover border border-border rounded-2xl shadow-lg overflow-hidden z-50"
+      class="absolute top-full left-0 right-0 mt-4 p-2 md:mt-2 bg-popover border border-border rounded-2xl shadow-lg overflow-hidden z-50"
       in:fly={{ y: -10, duration: 200, opacity: 1, easing: cubicOut }}
       out:fly={{ y: -10, duration: 150, opacity: 0, easing: cubicOut }}
     >
       {#each suggestions as suggestion}
         <button
-          class="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-accent hover:text-accent-foreground transition-colors"
+          class="w-full flex items-center gap-3 px-4 py-2 rounded-sm text-left hover:bg-accent hover:text-accent-foreground transition-colors"
           on:click={() => handleSuggestionClick(suggestion)}
         >
           {#if suggestion.text_item.icon}

@@ -146,7 +146,7 @@
             <h2 class="text-lg font-semibold leading-tight tracking-tight md:text-2xl">Категории</h2>
           {/if}
           <button
-            class="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95"
+            class="hidden h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95 md:flex"
             on:click={close}
           >
             <X class="h-5 w-5" />
@@ -156,7 +156,17 @@
       </div>
     </div>
 
-    <div class="p-4 space-y-6">
+    <div class="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 md:hidden">
+      <button
+        class="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95"
+        on:click={close}
+      >
+        <X class="h-5 w-5" />
+        <span class="sr-only">Закрыть</span>
+      </button>
+    </div>
+
+    <div class="p-4 space-y-4 pb-20 md:pb-4">
       {#if loading}
         <div class="flex items-center justify-center py-8">
           <div class="text-muted-foreground">Загрузка категорий...</div>

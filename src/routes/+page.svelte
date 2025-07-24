@@ -8,6 +8,7 @@
   import Logo from '$lib/components/Logo.svelte';
   import FavoritesModal from '$lib/components/FavoritesModal.svelte';
   import CategorySelectorModal from '$lib/components/CategorySelectorModal.svelte';
+  import CityModal from '$lib/components/CityModal.svelte';
   import { selectedCity, avitoCookies } from '$lib/stores';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
@@ -21,12 +22,23 @@
   let loading = false;
   let showFavorites = false;
   let showCategorySelector = false;
+  let showCitySelector = false;
   let selectedCategory: AvitoCategory | undefined;
   let selectedSubcategory: AvitoCategory | undefined;
   let searchCategory: { name: string; subcategory?: string } = { name: 'Все категории' };
 
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      showFavorites = false;
+      showCategorySelector = false;
+      showCitySelector = false;
+    }
+  }
+
   onMount(() => {
     mounted = true;
+    document.addEventListener('keydown', handleKeydown);
+
     const urlParams = new URLSearchParams($page.url.search);
     const categoryId = urlParams.get('categoryId');
     const categoryName = urlParams.get('categoryName');
@@ -37,6 +49,10 @@
         subcategory: subcategoryName || undefined
       };
     }
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeydown);
+    };
   });
 
   $: if (mounted) {
@@ -177,7 +193,7 @@
         <div class="flex items-center justify-between gap-2 md:flex-1">
           <div class="flex items-center gap-4">
             <Logo />
-            <CitySelector />
+            <CitySelector on:open={() => showCitySelector = true} />
           </div>
           <div class="flex items-center gap-2">
             <button
@@ -244,4 +260,8 @@
     on:close={() => showCategorySelector = false}
     on:select={handleCategorySelect}
   />
+{/if}
+
+{#if showCitySelector}
+  <CityModal on:close={() => showCitySelector = false} />
 {/if}
