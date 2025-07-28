@@ -61,7 +61,7 @@
       <div class="p-1">
         {#each options as option}
           <button
-            class="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[selected=true]:bg-accent/50"
+            class="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-primary/10 dark:hover:bg-primary/20 hover:text-primary data-[selected=true]:bg-accent/50"
             data-selected={option.value === value}
             on:click={() => handleSelect(option.value)}
           >

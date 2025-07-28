@@ -18,7 +18,7 @@
 </script>
 
 <button
-  class="inline-flex items-center justify-center rounded-full w-10 h-10 hover:bg-accent hover:text-accent-foreground"
+  class="inline-flex items-center justify-center rounded-full w-10 h-10 hover:bg-primary/10 dark:hover:bg-primary/20 hover:text-primary"
   on:click={toggleTheme}
 >
   {#if theme === 'light'}

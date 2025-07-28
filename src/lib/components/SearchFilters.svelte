@@ -1,167 +1,103 @@
 <script lang="ts">
-  import { createEventDispatcher, onMount } from 'svelte';
-  import type { Category, SearchParams } from '$lib/types';
-  import { CATEGORIES } from '$lib/types';
-  import { selectedCity } from '$lib/stores';
-  import { ChevronDown, Truck } from 'lucide-svelte';
-  import { fly } from 'svelte/transition';
-  import { cubicOut } from 'svelte/easing';
+  import { createEventDispatcher } from 'svelte';
+  import type { SearchParams } from '$lib/types';
+  import { X } from 'lucide-svelte';
+
+  export let searchParams: SearchParams = {};
 
   const dispatch = createEventDispatcher<{
     change: SearchParams;
   }>();
 
-  export let searchParams: SearchParams = {};
-  
-  let selectedCategory: Category | undefined;
-  let selectedSubcategory: Category | undefined;
-  let showCategories = false;
-  let priceFrom = searchParams.pmin?.toString() || '';
-  let priceTo = searchParams.pmax?.toString() || '';
   let withDelivery = searchParams.d === 1;
-  let categoriesMenu: HTMLDivElement;
+  let minPrice = searchParams.pmin?.toString() || '';
+  let maxPrice = searchParams.pmax?.toString() || '';
 
-  $: {
-    selectedCategory = CATEGORIES.find(c => c.id === searchParams.categoryId);
-    if (selectedCategory) {
-      selectedSubcategory = selectedCategory.subcategories?.find(
-        s => s.id === searchParams.verticalCategoryId
-      );
+  function handleChange() {
+    const params = { ...searchParams };
+    
+    if (withDelivery) {
+      params.d = 1;
+    } else {
+      delete params.d;
     }
+
+    if (minPrice) {
+      params.pmin = parseInt(minPrice);
+    } else {
+      delete params.pmin;
   }
 
-  onMount(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (showCategories && categoriesMenu && !categoriesMenu.contains(event.target as Node)) {
-        showCategories = false;
-      }
+    if (maxPrice) {
+      params.pmax = parseInt(maxPrice);
+    } else {
+      delete params.pmax;
     }
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  });
 
-  function handleCategorySelect(category: Category) {
-    selectedCategory = category;
-    selectedSubcategory = undefined;
-    updateParams({
-      categoryId: category.id,
-      verticalCategoryId: undefined
-    });
-    showCategories = false;
+    dispatch('change', params);
   }
 
-  function handleSubcategorySelect(subcategory: Category) {
-    selectedSubcategory = subcategory;
-    updateParams({
-      verticalCategoryId: subcategory.verticalId
-    });
-  }
-
-  function handlePriceChange() {
-    updateParams({
-      pmin: priceFrom ? parseInt(priceFrom) : undefined,
-      pmax: priceTo ? parseInt(priceTo) : undefined
-    });
-  }
-
-  function handleDeliveryChange() {
-    withDelivery = !withDelivery;
-    updateParams({
-      d: withDelivery ? 1 : undefined
-    });
-  }
-
-  function updateParams(newParams: Partial<SearchParams>) {
-    searchParams = { ...searchParams, ...newParams };
-    dispatch('change', searchParams);
+  function handleClear() {
+    withDelivery = false;
+    minPrice = '';
+    maxPrice = '';
+    dispatch('change', {});
   }
 </script>
 
+<div class="space-y-6">
 <div class="space-y-4">
-  <div class="relative">
-    <button
-      class="w-full flex items-center justify-between gap-2 rounded-xl border bg-background px-4 py-3 text-sm"
-      on:click={() => showCategories = !showCategories}
-    >
-      <span class="truncate">
-        {#if selectedSubcategory}
-          {selectedCategory?.name} › {selectedSubcategory.name}
-        {:else if selectedCategory}
-          {selectedCategory.name}
-        {:else}
-          Все категории
-        {/if}
-      </span>
-      <ChevronDown class="h-4 w-4" />
-    </button>
-
-    {#if showCategories}
-      <div
-        bind:this={categoriesMenu}
-        class="absolute left-0 right-0 top-full z-50 mt-1 max-h-[60vh] overflow-y-auto rounded-xl border bg-background shadow-lg"
-        in:fly={{ y: -10, duration: 200, opacity: 1, easing: cubicOut }}
-        out:fly={{ y: -10, duration: 150, opacity: 0, easing: cubicOut }}
-        on:click|stopPropagation
-      >
-        <div class="p-2 space-y-1">
-          {#each CATEGORIES as category}
-            <button
-              class="w-full flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground
-                {selectedCategory?.id === category.id ? 'bg-accent text-accent-foreground' : ''}"
-              on:click={() => handleCategorySelect(category)}
-            >
-              {category.name}
-            </button>
-            {#if selectedCategory?.id === category.id && category.subcategories}
-              <div class="ml-4 space-y-1 border-l pl-2">
-                {#each category.subcategories as subcategory}
-                  <button
-                    class="w-full flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground
-                      {selectedSubcategory?.id === subcategory.id ? 'bg-accent text-accent-foreground' : ''}"
-                    on:click={() => handleSubcategorySelect(subcategory)}
-                  >
-                    {subcategory.name}
-                  </button>
-                {/each}
+    <!-- Цена -->
+    <div class="space-y-2">
+      <label class="text-sm font-medium">Цена</label>
+      <div class="flex items-center gap-2">
+        <div class="relative flex-1">
+          <input
+            type="number"
+            placeholder="От"
+            bind:value={minPrice}
+            on:input={handleChange}
+            class="w-full h-10 px-3 rounded-xl border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
               </div>
-            {/if}
-          {/each}
+        <div class="relative flex-1">
+          <input
+            type="number"
+            placeholder="До"
+            bind:value={maxPrice}
+            on:input={handleChange}
+            class="w-full h-10 px-3 rounded-xl border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
         </div>
       </div>
-    {/if}
+    </div>
+
+    <!-- Доставка -->
+    <button
+      class="flex items-center justify-between w-full p-3 rounded-xl border transition-colors
+        {withDelivery 
+          ? 'border-primary bg-primary/5 dark:bg-primary/10' 
+          : 'hover:bg-primary/5 dark:hover:bg-primary/10 hover:border-primary/20 dark:hover:border-primary/30'}"
+      on:click={() => {
+        withDelivery = !withDelivery;
+        handleChange();
+      }}
+    >
+      <span class="text-sm">С доставкой</span>
+      <div class="h-4 w-8 rounded-full relative transition-colors {withDelivery ? 'bg-primary' : 'bg-muted'}">
+        <div class="absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-background transition-transform {withDelivery ? 'translate-x-4' : ''}" />
+    </div>
+    </button>
   </div>
 
-  <div class="flex gap-2">
-    <div class="flex-1 space-y-1.5">
-      <label for="priceFrom" class="text-sm font-medium">Цена от</label>
-      <input
-        id="priceFrom"
-        type="number"
-        bind:value={priceFrom}
-        on:change={handlePriceChange}
-        placeholder="0"
-        class="w-full rounded-xl border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground"
-      />
-    </div>
-    <div class="flex-1 space-y-1.5">
-      <label for="priceTo" class="text-sm font-medium">до</label>
-      <input
-        id="priceTo"
-        type="number"
-        bind:value={priceTo}
-        on:change={handlePriceChange}
-        placeholder="∞"
-        class="w-full rounded-xl border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground"
-      />
-    </div>
-  </div>
-
+  <!-- Кнопка сброса -->
   <button
-    class="flex w-full items-center gap-2 rounded-xl border bg-background px-4 py-3 text-sm transition-colors hover:bg-accent hover:text-accent-foreground
-      {withDelivery ? 'border-primary text-primary' : ''}"
-    on:click={handleDeliveryChange}
+    class="flex items-center justify-between w-full p-3 rounded-xl border hover:bg-destructive/10 dark:hover:bg-destructive/20 hover:text-destructive hover:border-destructive/20 dark:hover:border-destructive/30 transition-colors"
+    on:click={handleClear}
   >
-    <Truck class="h-4 w-4" />
-    <span>С доставкой</span>
+    <div class="flex items-center gap-3">
+      <X class="h-5 w-5" />
+      <span>Сбросить фильтры</span>
+    </div>
   </button>
 </div> 

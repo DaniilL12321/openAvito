@@ -61,7 +61,7 @@ export interface AppState {
 export interface Category {
   id: number;
   name: string;
-  verticalId?: number;
+  deeplink: string;
   subcategories?: Category[];
 }
 

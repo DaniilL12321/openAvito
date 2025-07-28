@@ -177,7 +177,7 @@
             <div class="grid grid-cols-2 gap-3">
               {#each groupedSubcategories['auto'].items as category}
                 <button
-                  class="w-full flex items-center justify-between rounded-lg px-4 py-3 text-left text-sm border border-border hover:bg-accent hover:text-accent-foreground transition-colors"
+                  class="w-full flex items-center justify-between rounded-lg px-4 py-3 text-left text-sm border border-border hover:bg-primary/10 dark:hover:bg-primary/20 hover:text-primary transition-colors"
                   on:click={() => selectCategory(category)}
                 >
                   <span class="truncate">{category.name}</span>
@@ -191,7 +191,7 @@
               <div class="space-y-3">
                 {#if group.header}
                   <button
-                    class="w-full px-4 py-2 bg-muted rounded-lg text-left hover:bg-accent hover:text-accent-foreground transition-colors"
+                    class="w-full px-4 py-2 bg-muted rounded-lg text-left hover:bg-primary/10 dark:hover:bg-primary/20 hover:text-primary transition-colors"
                     on:click={() => group.header && selectCategory(group.header)}
                   >
                     <strong class="text-base font-medium">
@@ -202,7 +202,7 @@
                 <div class="grid grid-cols-2 gap-3">
                   {#each group.items as subcategory}
                     <button
-                      class="w-full flex items-center justify-between rounded-lg px-4 py-3 text-left text-sm border border-border hover:bg-accent hover:text-accent-foreground transition-colors"
+                      class="w-full flex items-center justify-between rounded-lg px-4 py-3 text-left text-sm border border-border hover:bg-primary/10 dark:hover:bg-primary/20 hover:text-primary transition-colors"
                       on:click={() => selectCategory(subcategory)}
                     >
                       <span class="truncate">{subcategory.name}</span>
@@ -217,7 +217,7 @@
             <div class="grid grid-cols-2 gap-3">
               {#each groupedSubcategories['ungrouped'].items as subcategory}
                 <button
-                  class="w-full flex items-center justify-between rounded-lg px-4 py-3 text-left text-sm border border-border hover:bg-accent hover:text-accent-foreground transition-colors"
+                  class="w-full flex items-center justify-between rounded-lg px-4 py-3 text-left text-sm border border-border hover:bg-primary/10 dark:hover:bg-primary/20 hover:text-primary transition-colors"
                   on:click={() => selectCategory(subcategory)}
                 >
                   <span class="truncate">{subcategory.name}</span>
@@ -229,7 +229,7 @@
         {:else}
           {#each categories.filter(c => !c.parentId) as category}
             <button
-              class="w-full flex items-center justify-between rounded-lg px-4 py-3 text-left text-sm border border-border hover:bg-accent hover:text-accent-foreground transition-colors"
+              class="w-full flex items-center justify-between rounded-lg px-4 py-3 text-left text-sm border border-border hover:bg-primary/10 dark:hover:bg-primary/20 hover:text-primary transition-colors"
               on:click={() => selectCategory(category)}
             >
               <div class="flex items-center gap-3">

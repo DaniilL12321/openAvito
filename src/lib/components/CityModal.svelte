@@ -141,8 +141,7 @@
         {:else}
           {#each cities as city}
             <button
-              class="w-full rounded-2xl p-3 text-left transition-colors hover:bg-accent {$selectedCity.id === city.id ? 'bg-accent' : ''}"
-              on:click={() => selectCity(city)}
+            class="w-full rounded-2xl p-3 text-left transition-colors hover:bg-primary/10 dark:hover:bg-primary/20 {$selectedCity.id === city.id ? 'bg-primary/10 dark:bg-primary/20' : ''}"              on:click={() => selectCity(city)}
             >
               <div class="flex items-center justify-between">
                 <div>

@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { SearchParams, SearchUrlParams, AvitoItem } from '$lib/types';
+import { isAvitoError } from '$lib/utils/handleAvitoError';
 
 function adaptItem(item: any): AvitoItem {
   return {
@@ -41,10 +42,20 @@ function adaptItem(item: any): AvitoItem {
   };
 }
 
-function parseDeeplink(deeplink: string): string {
+function parseDeeplink(deeplink: string, page?: number): string {
   try {
-    const searchParams = deeplink.replace('ru.avito://1/items/search', '');
-    return searchParams.replace(/%5B/g, '[').replace(/%5D/g, ']');
+    let searchParams = deeplink.replace('ru.avito://1/items/search', '');
+    searchParams = searchParams.replace(/%5B/g, '[').replace(/%5D/g, ']');
+    
+    if (page && page > 1) {
+      if (searchParams.includes('&p=')) {
+        searchParams = searchParams.replace(/&p=\d+/, `&p=${page}`);
+      } else {
+        searchParams += `&p=${page}`;
+      }
+    }
+    
+    return searchParams;
   } catch (error) {
     console.error('Error parsing deeplink:', error);
     return '';
@@ -60,7 +71,7 @@ export const POST: RequestHandler = async ({ request }) => {
     const searchParams = params as SearchUrlParams;
     const searchQuery = parseDeeplink(searchParams.deeplink);
     apiUrl += searchQuery;
-    console.log(apiUrl);
+    console.log('Deeplink search URL:', apiUrl);
     if (searchParams.p && searchParams.p > 1) {
       apiUrl += `&p=${searchParams.p}`;
     }
@@ -84,7 +95,7 @@ export const POST: RequestHandler = async ({ request }) => {
     queryParams.set('locationId', searchParams.locationId.toString());
   }
   if (searchParams.name) {
-    queryParams.set('name', searchParams.name);
+      queryParams.set('q', searchParams.name);
   }
   if (searchParams.geoCoords) {
     queryParams.set('geoCoords', searchParams.geoCoords.join(','));
@@ -103,6 +114,7 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 
   apiUrl += `?${queryParams.toString()}`;
+    console.log('Search URL:', apiUrl);
   }
 
   try {
@@ -122,18 +134,31 @@ export const POST: RequestHandler = async ({ request }) => {
     });
 
     const data = await response.json();
+    console.log('Avito API response:', data);
     
-    if (data.error) {
-      return json({ error: 'Failed to fetch search results' });
+    if (isAvitoError(data)) {
+      return json(data, { status: 403 });
+    }
+    
+    if (data.error || !data.catalog?.items) {
+      return json({ 
+        status: 'error',
+        result: { 
+          message: 'Не удалось получить результаты поиска'
+        }
+      }, { status: 500 });
     }
 
     return json({
-      items: data.catalog?.items?.map(adaptItem) || []
+      items: data.catalog.items.map(adaptItem) || []
     });
   } catch (error) {
     console.error('Error fetching search results:', error);
-    return new Response(JSON.stringify({ error: 'Failed to fetch search results' }), {
-      status: 500
-    });
+    return json({ 
+      status: 'error',
+      result: { 
+        message: 'Ошибка при получении результатов поиска'
+      }
+    }, { status: 500 });
   }
 }; 

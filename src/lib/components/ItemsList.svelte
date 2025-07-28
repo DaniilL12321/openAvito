@@ -1,9 +1,16 @@
 <script lang="ts">
+  import { selectedCity, avitoCookies } from '$lib/stores';
+  import { toasts } from '$lib/stores/toast';
+  import { handleAvitoError } from '$lib/utils/handleAvitoError';
+  import { createEventDispatcher } from 'svelte';
   import type { AvitoItem } from '$lib/types';
   import ItemCard from './ItemCard.svelte';
   import { onMount } from 'svelte';
-  import { selectedCity, avitoCookies } from '$lib/stores';
   import { page } from '$app/stores';
+
+  const dispatch = createEventDispatcher<{
+    cookiesError: void;
+  }>();
 
   export let title: string;
   export let initialItems: AvitoItem[] = [];
@@ -16,6 +23,7 @@
   let error: string | null = null;
   let recommendations: AvitoItem[] = [];
   let recommendationsLoaded = false;
+  let currentPage = 1;
 
   $: {
     items = initialItems;
@@ -31,98 +39,76 @@
     if (loading || !hasMore) return;
     loading = true;
     error = null;
+    currentPage++;
+
     try {
-      const params = new URLSearchParams(searchParams);
-      const nextPage = Math.floor(offset / 50) + 2;
-      let url = '/api/items';
-      let isSearchMode = false;
-      if (isSearch) {
-        url = '/api/search';
-        isSearchMode = true;
-        
-        const searchQuery = params.get('q');
-      const response = await fetch(url, {
+      const urlParams = new URLSearchParams(window.location.search);
+      const deeplink = urlParams.get('deeplink');
+      const searchQuery = urlParams.get('q');
+
+      const endpoint = deeplink || searchQuery ? '/api/search' : '/api/items';
+      const params = deeplink ? {
+        deeplink,
+        locationId: $selectedCity.id,
+        p: currentPage
+      } : searchQuery ? {
+        name: searchQuery,
+        locationId: $selectedCity.id,
+        categoryId: urlParams.get('categoryId') ? parseInt(urlParams.get('categoryId')!) : undefined,
+        verticalCategoryId: urlParams.get('verticalCategoryId') ? parseInt(urlParams.get('verticalCategoryId')!) : undefined,
+        pmin: urlParams.get('pmin') ? parseInt(urlParams.get('pmin')!) : undefined,
+        pmax: urlParams.get('pmax') ? parseInt(urlParams.get('pmax')!) : undefined,
+        d: urlParams.get('d') === '1' ? 1 : undefined,
+        view: 'gallery',
+        p: currentPage
+      } : {
+        locationId: $selectedCity.id,
+        p: currentPage
+      };
+
+      console.log('Loading more items:', { endpoint, params });
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           cookies: $avitoCookies,
-            params: {
-              name: searchQuery,
-              locationId: $selectedCity.id,
-              categoryId: params.get('categoryId') ? parseInt(params.get('categoryId')!) : undefined,
-              verticalCategoryId: params.get('verticalCategoryId') ? parseInt(params.get('verticalCategoryId')!) : undefined,
-              pmin: params.get('pmin') ? parseInt(params.get('pmin')!) : undefined,
-              pmax: params.get('pmax') ? parseInt(params.get('pmax')!) : undefined,
-              d: params.get('d') === '1' ? 1 : undefined,
-              view: 'gallery',
-              p: nextPage
-            }
+          params
         })
       });
+
       const data = await response.json();
-      if (data.error) {
-        error = 'Ошибка загрузки объявлений. Возможно, нужно обновить куки.';
+      console.log('Response data:', data);
+
+      const { error: errorMessage, needCookies } = handleAvitoError(data);
+
+      if (needCookies) {
+        error = errorMessage;
+        dispatch('cookiesError');
         return;
       }
-      if (!data.items?.length) {
-        hasMore = false;
-          if (!recommendationsLoaded) {
-          await loadRecommendations();
-        }
-      } else {
-        const newItems = data.items.filter((newItem: AvitoItem) => 
-          !items.some(existingItem => existingItem.id === newItem.id)
-        );
-        if (newItems.length === 0) {
-          hasMore = false;
-            if (!recommendationsLoaded) {
-            await loadRecommendations();
-          }
-        } else {
-          items = [...items, ...newItems];
-          offset += data.items.length;
-          }
-        }
-      } else {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            cookies: $avitoCookies,
-            params: {
-              deeplink: params.get('deeplink'),
-              locationId: $selectedCity.id,
-              p: nextPage
-            }
-          })
-        });
-        const data = await response.json();
-        if (data.error) {
-          error = 'Ошибка загрузки объявлений. Возможно, нужно обновить куки.';
+
+      if (errorMessage) {
+        error = errorMessage;
+        toasts.show(errorMessage, 'error');
           return;
         }
-        if (!data.items?.length) {
-          hasMore = false;
-        } else {
-          const newItems = data.items.filter((newItem: AvitoItem) => 
+
+      const newItems = (data.items || []).filter((newItem: AvitoItem) => 
             !items.some(existingItem => existingItem.id === newItem.id)
           );
+
           if (newItems.length === 0) {
             hasMore = false;
           } else {
             items = [...items, ...newItems];
-            offset += data.items.length;
-          }
-        }
       }
     } catch (err) {
       console.error('Error loading more items:', err);
-      error = 'Ошибка загрузки объявлений. Возможно, нужно обновить куки.';
-      hasMore = false;
+      error = 'Ошибка загрузки объявлений';
+      toasts.show('Ошибка загрузки объявлений', 'error');
     } finally {
       loading = false;
     }
@@ -203,7 +189,7 @@
       item.urlPath && 
       item.priceDetailed?.string &&
       (item.images?.length > 0 || item.locationId)
-    ) as item (item.id)}
+    ) as item, index (`${item.id}-${Math.floor(index / 50) + 1}`)}
       <ItemCard {item} />
     {/each}
   </div>
@@ -223,7 +209,7 @@
           item.urlPath && 
           item.priceDetailed?.string &&
           (item.images?.length > 0 || item.locationId)
-        ) as item (item.id)}
+        ) as item, index (`rec-${item.id}-${index}`)}
           <ItemCard {item} />
         {/each}
       </div>

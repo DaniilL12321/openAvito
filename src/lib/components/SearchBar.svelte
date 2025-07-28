@@ -2,6 +2,7 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { selectedCity, avitoCookies, query } from '$lib/stores';
+  import { showSearchSuggestions, suggestions as sharedSuggestions, type Suggestion } from '$lib/stores/search';
   import { Search, HelpCircle, ChevronDown, Sliders, LayoutGrid } from 'lucide-svelte';
   import type { SearchParams } from '$lib/types';
   import SearchFilters from './SearchFilters.svelte';
@@ -12,15 +13,16 @@
 
   const dispatch = createEventDispatcher<{
     categorySelect: void;
+    search: void;
   }>();
 
   export let selectedCategory: { name: string } = { name: 'Все категории' };
+  export let autoFocus = false;
+  export let isMobile = false;
 
   let searchInput: HTMLInputElement;
   let filtersContainer: HTMLDivElement;
   let suggestionsContainer: HTMLDivElement;
-  let suggestions: any[] = [];
-  let showSuggestions = false;
   let showFilters = false;
   let searchParams: SearchParams = {};
 
@@ -42,6 +44,10 @@
     document.addEventListener('click', handleClickOutside);
     document.addEventListener('keydown', handleKeydown);
 
+    if (autoFocus && searchInput) {
+      searchInput.focus();
+    }
+
     return () => {
       document.removeEventListener('click', handleClickOutside);
       document.removeEventListener('keydown', handleKeydown);
@@ -51,8 +57,8 @@
   function handleClickOutside(event: MouseEvent) {
     const target = event.target as HTMLElement;
     
-    if (showSuggestions && suggestionsContainer && !suggestionsContainer.contains(target) && !searchInput.contains(target)) {
-      showSuggestions = false;
+    if ($showSearchSuggestions && suggestionsContainer && !suggestionsContainer.contains(target) && !searchInput.contains(target)) {
+      showSearchSuggestions.set(false);
     }
     
     if (showFilters && filtersContainer && !filtersContainer.contains(target)) {
@@ -62,7 +68,7 @@
 
   function handleKeydown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
-      showSuggestions = false;
+      showSearchSuggestions.set(false);
       showFilters = false;
       searchInput?.blur();
     }
@@ -90,17 +96,17 @@
         });
         
         const data = await response.json();
-        suggestions = data.result || [];
-        showSuggestions = true;
+        $sharedSuggestions = (data.result || []) as Suggestion[];
+        showSearchSuggestions.set(true);
       } catch (error) {
         console.error('Error fetching suggestions:', error);
       }
     }, 300);
   }
 
-  function handleSuggestionClick(suggestion: any) {
+  function handleSuggestionClick(suggestion: Suggestion) {
     $query = suggestion.text_item.title;
-    showSuggestions = false;
+    showSearchSuggestions.set(false);
     handleSearch();
   }
 
@@ -126,9 +132,10 @@
       params.set('d', searchParams.d.toString());
     }
 
-    showSuggestions = false;
+    showSearchSuggestions.set(false);
     showFilters = false;
     goto(`/?${params.toString()}`);
+    dispatch('search');
   }
 
   function handleFiltersChange(event: CustomEvent<SearchParams>) {
@@ -144,15 +151,15 @@
   function toggleFilters() {
     showFilters = !showFilters;
     if (showFilters) {
-      showSuggestions = false;
+      showSearchSuggestions.set(false);
     }
   }
 </script>
 
-<div class="relative w-full" bind:this={filtersContainer}>
+<div class="relative w-full {isMobile ? '' : 'hidden md:block'}" bind:this={filtersContainer}>
   <div class="flex items-center gap-2">
     <button
-      class="flex-shrink-0 w-11 h-11 md:w-auto md:h-11 md:px-5 flex items-center justify-center rounded-full bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
+      class="flex-shrink-0 w-11 h-11 md:w-auto md:h-11 md:px-5 flex items-center justify-center rounded-full bg-primary/10 hover:bg-primary/15 dark:hover:bg-primary/25 text-primary transition-colors"
       on:click={() => dispatch('categorySelect')}
     >
       <LayoutGrid class="block md:hidden h-5 w-5" />
@@ -179,7 +186,7 @@
 
         <div class="flex items-center gap-1.5">
           <button
-            class="p-1.5 hover:bg-accent hover:text-accent-foreground rounded-full transition-colors"
+            class="p-1.5 hover:bg-primary/10 dark:hover:bg-primary/20 hover:text-primary rounded-full transition-colors"
             on:click|stopPropagation={toggleFilters}
             title="Фильтры"
           >
@@ -197,16 +204,16 @@
     </div>
   </div>
   
-  {#if showSuggestions && suggestions.length > 0}
+  {#if $showSearchSuggestions && $sharedSuggestions.length > 0}
     <div 
       bind:this={suggestionsContainer}
-      class="absolute top-full left-0 right-0 mt-4 p-2 md:mt-2 bg-popover border border-border rounded-2xl shadow-lg overflow-hidden z-50"
+      class="absolute top-full left-0 right-0 mt-6 p-2 md:mt-2 bg-popover border border-border rounded-2xl shadow-lg overflow-hidden z-50"
       in:fly={{ y: -10, duration: 200, opacity: 1, easing: cubicOut }}
       out:fly={{ y: -10, duration: 150, opacity: 0, easing: cubicOut }}
     >
-      {#each suggestions as suggestion}
+      {#each $sharedSuggestions as suggestion}
         <button
-          class="w-full flex items-center gap-3 px-4 py-2 rounded-sm text-left hover:bg-accent hover:text-accent-foreground transition-colors"
+          class="w-full flex items-center gap-3 px-4 py-2 rounded-xl text-left hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors"
           on:click={() => handleSuggestionClick(suggestion)}
         >
           {#if suggestion.text_item.icon}
@@ -217,6 +224,10 @@
               height="20"
               class="flex-shrink-0 dark:invert"
             />
+          {:else}
+            <div class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Search class="h-3.5 w-3.5" />
+            </div>
           {/if}
           <span class="truncate text-sm">{suggestion.text_item.title}</span>
         </button>
@@ -226,7 +237,7 @@
 
   {#if showFilters}
     <div 
-      class="absolute top-full left-0 right-0 mt-4 md:mt-2 bg-popover border border-border rounded-2xl shadow-lg overflow-hidden z-50"
+      class="absolute top-full left-0 right-0 mt-6 md:mt-2 bg-popover border border-border rounded-2xl shadow-lg overflow-hidden z-50"
       in:fly={{ y: -10, duration: 200, opacity: 1, easing: cubicOut }}
       out:fly={{ y: -10, duration: 150, opacity: 0, easing: cubicOut }}
       on:click|stopPropagation
