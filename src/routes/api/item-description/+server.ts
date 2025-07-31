@@ -47,6 +47,28 @@ interface ReviewsResponse {
 	nextPage?: string;
 }
 
+function extractMetaContent(html: string, property: string): string | null {
+	const patterns = [
+		new RegExp(`<meta[^>]*property=["']${property.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*content=["']([^"']*)["']`, 'i'),
+		new RegExp(`<meta[^>]*content=["']([^"']*)["'][^>]*property=["']${property.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`, 'i'),
+		new RegExp(`<meta[^>]*name=["']${property.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*content=["']([^"']*)["']`, 'i'),
+		new RegExp(`<meta[^>]*content=["']([^"']*)["'][^>]*name=["']${property.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`, 'i')
+	];
+	
+	for (const pattern of patterns) {
+		const match = html.match(pattern);
+		if (match) {
+			return match[1];
+		}
+	}
+	return null;
+}
+
+function extractTitle(html: string): string | null {
+	const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+	return titleMatch ? titleMatch[1].replace(/&nbsp;/g, ' ').trim() : null;
+}
+
 async function fetchReviewsData(
 	userId: string,
 	cookies: string,
@@ -154,6 +176,17 @@ export const POST: RequestHandler = async ({ request }) => {
 			});
 		}
 
+		const title = extractTitle(html) || '';
+		const description = extractMetaContent(html, 'description') || extractMetaContent(html, 'og:description') || '';
+		const priceAmount = extractMetaContent(html, 'product:price:amount');
+		const priceCurrency = extractMetaContent(html, 'product:price:currency');
+		const ogUrl = extractMetaContent(html, 'og:url') || '';
+		const ogImage = extractMetaContent(html, 'og:image') || '';
+		
+		const sellerName = extractMetaContent(html, 'vk:seller_name') || '';
+		const sellerRating = extractMetaContent(html, 'vk:seller_rating') || '';
+		const sellerReviewCount = extractMetaContent(html, 'vk:seller_review_count') || '';
+
 		const locationMatch = html.match(/data-map-lat="([^"]+)"[^>]*data-map-lon="([^"]+)"/);
 		const location = locationMatch
 			? {
@@ -162,30 +195,10 @@ export const POST: RequestHandler = async ({ request }) => {
 				}
 			: null;
 
-		const descriptionMatch = html.match(
-			/<div[^>]*data-marker="item-view\/item-description"[^>]*>(.*?)<\/div>/s
-		);
-		let description = '';
-
-		if (descriptionMatch) {
-			description = descriptionMatch[1]
-				.replace(/<p>/g, '\n')
-				.replace(/<\/p>/g, '')
-				.replace(/<br\s*\/?>/g, '\n')
-				.replace(/<strong>/g, '')
-				.replace(/<\/strong>/g, '')
-				.replace(/&nbsp;/g, ' ')
-				.replace(/&mdash;/g, '—')
-				.replace(/&laquo;/g, '«')
-				.replace(/&raquo;/g, '»')
-				.replace(/\n{3,}/g, '\n\n')
-				.trim();
-		}
-
 		const sellerInfo = {
-			name: '',
-			rating: '',
-			reviewsCount: '',
+			name: sellerName,
+			rating: sellerRating,
+			reviewsCount: sellerReviewCount,
 			type: '',
 			badges: [] as string[],
 			registrationDate: '',
@@ -196,7 +209,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			itemsUrl: '',
 			isCompany: false,
 			ratingStat: null as RatingEntry[] | null,
-			scoreFloat: null as number | null,
+			scoreFloat: sellerRating ? parseFloat(sellerRating) : null,
 			sellerId: null as string | null
 		};
 
@@ -205,8 +218,6 @@ export const POST: RequestHandler = async ({ request }) => {
 		);
 		if (nameMatch) {
 			const href = nameMatch[1];
-			sellerInfo.name = nameMatch[2].trim();
-
 			sellerInfo.profileUrl = href.startsWith('http') ? href : `https://www.avito.ru${href}`;
 
 			if (href.includes('/brands/')) {
@@ -232,13 +243,6 @@ export const POST: RequestHandler = async ({ request }) => {
 					sellerInfo.scoreFloat = reviewsData.scoreFloat;
 				}
 			}
-		}
-
-		const ratingMatch = html.match(
-			/<div class="Ww4IN seller-info-rating"><span class="Tdsqf">([0-9,]+)<\/span>/
-		);
-		if (ratingMatch) {
-			sellerInfo.rating = ratingMatch[1];
 		}
 
 		const typeMatch = html.match(
@@ -275,7 +279,15 @@ export const POST: RequestHandler = async ({ request }) => {
 			sellerInfo.itemsCount = itemsCountMatch[1];
 		}
 
-		return json({ description, sellerInfo, location });
+		return json({ 
+			description: description.replace(/&nbsp;/g, ' ').replace(/&mdash;/g, '—').replace(/&laquo;/g, '«').replace(/&raquo;/g, '»').trim(),
+			sellerInfo, 
+			location,
+			title,
+			price: priceAmount ? { amount: priceAmount, currency: priceCurrency || 'RUB' } : null,
+			ogUrl,
+			ogImage
+		});
 	} catch (error) {
 		console.error('Error fetching item description:', error);
 		return json({ error: 'Failed to fetch item description' }, { status: 500 });
