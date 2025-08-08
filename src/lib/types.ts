@@ -42,6 +42,14 @@ export interface AvitoItem {
 	isFavorite?: boolean;
 	isActive?: boolean;
 	isDeleted?: boolean;
+	views?: {
+		itemID: string;
+		sortTime: string;
+		todayViews: number;
+		todayViewsStr: string;
+		totalViews: number;
+		totalViewsStr: string;
+	};
 }
 
 export interface AvitoResponse {
@@ -61,8 +69,9 @@ export interface AppState {
 export interface Category {
 	id: number;
 	name: string;
-	deeplink: string;
+	deeplink?: string;
 	subcategories?: Category[];
+	verticalId?: number;
 }
 
 export interface SearchParams {

@@ -10,7 +10,9 @@
 		Star,
 		ExternalLink,
 		AlertCircle,
-		ChevronDown
+		ChevronDown,
+		Eye,
+		Hash
 	} from 'lucide-svelte';
 	import { fly, slide } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
@@ -51,6 +53,13 @@
 		lon: number;
 	}
 
+	interface Badge {
+		id: number;
+		title: string;
+		style: any;
+		uri: string;
+	}
+
 	export let item: AvitoItem;
 
 	const dispatch = createEventDispatcher();
@@ -62,52 +71,67 @@
 	let isDeleted = false;
 	let isClosed = false;
 	let showReviews = false;
-	let modalContainer: HTMLDivElement;
 	let location: Location | null = null;
 	let showMap = false;
 	let touchStartX = 0;
 	let touchEndX = 0;
 	let isSwiping = false;
+	let viewsInfo = {
+		itemID: '',
+		sortTime: '',
+		todayViewsStr: '',
+		totalViewsStr: ''
+	};
 
-	async function getLocationDetails(lat: number, lon: number): Promise<LocationDetails> {
+	let modalRef: HTMLDivElement;
+
+	async function getLocationDetails(lat: number, lon: number) {
 		try {
 			const response = await fetch(
-				`https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${import.meta.env.VITE_MAPBOX_TOKEN}&language=ru`
+				`https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=pk.eyJ1IjoieXN0dXJhc3AiLCJhIjoiY21kZWMyN3c3MDB5cjJqcjF4YWM5MHZoMyJ9.jw6SgrueswyYwYqyZBVTtg&language=ru`
 			);
 			const data = await response.json();
 
 			if (data.features && data.features.length > 0) {
-				const fullAddress = data.features[0].place_name;
-				const shortMatch = fullAddress.match(/Ярославль(?:,\s*([^,]+))?/);
-				const shortAddress = shortMatch
-					? shortMatch[1]
-						? `Ярославль, ${shortMatch[1]}`
-						: 'Ярославль'
-					: fullAddress;
+				const feature = data.features[0];
+				const district = feature.context?.find((c: any) => c.id.startsWith('locality'))?.text_ru;
+				const city = feature.context?.find((c: any) => c.id.startsWith('place'))?.text_ru;
+				const street = feature.text_ru;
+				const house = feature.address;
 
-				return {
-					shortAddress,
-					fullAddress
-				};
+				let address = '';
+				if (city) address += city;
+				if (district) address += `, ${district}`;
+				if (street) address += `, ${street}`;
+				if (house) address += ` ${house}`;
+
+				return address;
 			}
-
-			return {
-				shortAddress: getLocationString(item),
-				fullAddress: null
-			};
+			return '';
 		} catch (error) {
-			console.error('Error fetching location details:', error);
-			return {
-				shortAddress: getLocationString(item),
-				fullAddress: null
-			};
+			console.error('Error getting location details:', error);
+			return '';
 		}
 	}
 
-	let locationDetails: LocationDetails | null = null;
+	function getAvatarUrl(avatar: any): string {
+		if (!avatar) return '';
+
+		const sizes = ['256x256', '192x192', '128x128', '168x112', '96x96'];
+
+		for (const size of sizes) {
+			if (avatar.images[size]) {
+				return avatar.images[size];
+			}
+		}
+
+		return avatar.defaultUrl || '';
+	}
+
+	let locationDetails: string | null = null;
 
 	onMount(async () => {
-		modalContainer?.focus();
+		modalRef?.focus();
 		loadingDescription = true;
 
 		if (item.images && item.images.length > 0) {
@@ -124,7 +148,7 @@
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					url: item.urlPath,
+					id: item.id,
 					cookies: $avitoCookies
 				})
 			});
@@ -133,12 +157,42 @@
 			if (data.description) {
 				description = data.description;
 			}
-			if (data.sellerInfo) {
-				sellerInfo = data.sellerInfo;
+			if (data.seller) {
+				sellerInfo = {
+					name: data.seller.name || '',
+					rating: data.seller.rating?.score?.toString() || '',
+					reviewsCount: data.seller.rating?.text?.match(/\d+/)?.[0] || '',
+					type: data.seller.title || '',
+					badges: data.seller.badgeBar?.badges?.map((badge: Badge) => badge.title) || [],
+					registrationDate: data.seller.registrationInfo || '',
+					avatar: getAvatarUrl(data.seller.avatar),
+					responseTime: data.seller.replyTime?.text || '',
+					itemsCount: data.seller.summary?.match(/\d+/)?.[0] || '',
+					profileUrl: data.seller.link || '',
+					itemsUrl: '',
+					isCompany: data.seller.profileType === 'shop',
+					ratingStat: null,
+					scoreFloat: typeof data.seller.rating?.scoreFloat === 'number' ? data.seller.rating.scoreFloat : null,
+					sellerId: data.seller.userHash || null
+				};
+
+				const userKeyMatch = data.seller.link?.match(/userKey=([^&]+)/);
+				if (userKeyMatch) {
+					sellerInfo.sellerId = userKeyMatch[1];
+				}
 			}
-			if (data.location) {
-				location = data.location;
-				locationDetails = await getLocationDetails(data.location.lat, data.location.lon);
+			if (data.coords) {
+				location = {
+					lat: Number(data.coords.lat),
+					lon: Number(data.coords.lng)
+				};
+				locationDetails = await getLocationDetails(data.coords.lat, data.coords.lng);
+			}
+			if (data.address) {
+				locationDetails = data.address;
+			}
+			if (data.beduin?.main?.params?.bricks?.templateData?.views) {
+				viewsInfo = data.beduin.main.params.bricks.templateData.views;
 			}
 			isDeleted = data.isDeleted || false;
 			isClosed = data.isClosed || false;
@@ -156,7 +210,7 @@
 
 	function handleReviewsClose() {
 		showReviews = false;
-		setTimeout(() => modalContainer?.focus(), 0);
+		setTimeout(() => modalRef?.focus(), 0);
 	}
 
 	function nextImage() {
@@ -263,10 +317,15 @@
 </script>
 
 <div
-	bind:this={modalContainer}
-	class="fixed inset-0 z-[70] bg-background/80 outline-none backdrop-blur-sm"
-	on:click|self={close}
-	on:keydown={handleKeydown}
+	bind:this={modalRef}
+	class="fixed inset-0 z-[80] bg-background/80 outline-none backdrop-blur-sm"
+	on:click|self={() => dispatch('close')}
+	on:keydown={(e) => {
+		if (e.key === 'Escape' && !showReviews) {
+			e.preventDefault();
+			dispatch('close');
+		}
+	}}
 	tabindex="0"
 	transition:fly={{ duration: 200, opacity: 0 }}
 >
@@ -423,13 +482,7 @@
 											class="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground"
 										/>
 										<div class="text-left">
-											{#if locationDetails?.fullAddress}
-												<p class="text-sm">{locationDetails.fullAddress}</p>
-											{:else}
-												<p class="text-sm">
-													{locationDetails?.shortAddress || ''}
-												</p>
-											{/if}
+											<p class="text-sm">{locationDetails || 'Загрузка адреса...'}</p>
 										</div>
 									</div>
 									<ChevronDown
@@ -537,7 +590,9 @@
 												{#if sellerInfo.reviewsCount}
 													<button
 														class="text-sm text-primary"
-														on:click={() => (showReviews = true)}
+														on:click={() => {
+															showReviews = true;
+														}}
 													>
 														{sellerInfo.reviewsCount} отзывов
 													</button>
@@ -558,26 +613,28 @@
 										{/each}
 									</div>
 								{/if}
-
-								<div class="flex flex-wrap gap-4 text-sm text-muted-foreground">
-									{#if sellerInfo.itemsCount}
-										<a
-											href={sellerInfo.itemsUrl}
-											target="_blank"
-											rel="noopener noreferrer"
-											class="text-primary hover:underline"
-										>
-											{sellerInfo.itemsCount} объявлений
-										</a>
-									{/if}
-									{#if sellerInfo.responseTime}
-										<span>{sellerInfo.responseTime}</span>
-									{/if}
-								</div>
 							</div>
 						{/if}
 
-						<div class="flex items-center gap-4 pb-20 md:pb-0">
+						<div class="mt-4 space-y-2 text-sm text-muted-foreground">
+							<div class="flex items-center gap-1">
+								<Eye class="h-4 w-4" />
+								<span>{viewsInfo.totalViewsStr || '0 просмотров'}</span>
+								{#if viewsInfo.todayViewsStr}
+									<span>({viewsInfo.todayViewsStr.split(' ')[0]} сегодня)</span>
+								{/if}
+							</div>
+							<div class="flex items-center gap-1">
+								<Hash class="h-4 w-4" />
+								<span>{viewsInfo.itemID || item.id}</span>
+								{#if viewsInfo.sortTime}
+									<span>·</span>
+									<span>{viewsInfo.sortTime}</span>
+								{/if}
+							</div>
+						</div>
+
+						<div class="mt-6 flex items-center gap-4 pb-20 md:pb-0">
 							<a
 								href="https://www.avito.ru{item.urlPath}"
 								target="_blank"
@@ -595,16 +652,17 @@
 	</div>
 </div>
 
-{#if showReviews && sellerInfo && sellerInfo.ratingStat && sellerInfo.scoreFloat !== null}
+{#if showReviews && sellerInfo}
 	<ReviewsModal
 		sellerName={sellerInfo.name}
-		ratingStat={sellerInfo.ratingStat}
-		scoreFloat={sellerInfo.scoreFloat}
-		totalReviews={parseInt(sellerInfo.reviewsCount)}
-		userId={sellerInfo.isCompany
-			? sellerInfo.sellerId || ''
-			: sellerInfo.profileUrl.match(/\/user\/([^/?]+)/)?.[1] || ''}
-		on:close={handleReviewsClose}
+		ratingStat={sellerInfo.ratingStat || []}
+		scoreFloat={sellerInfo.scoreFloat || 0}
+		totalReviews={Number(sellerInfo.reviewsCount) || 0}
+		userId={sellerInfo.sellerId || ''}
+		on:close={() => {
+			showReviews = false;
+			setTimeout(() => modalRef?.focus(), 0);
+		}}
 	/>
 {/if}
 
