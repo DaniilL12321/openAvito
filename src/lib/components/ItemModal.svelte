@@ -88,7 +88,7 @@
 	async function getLocationDetails(lat: number, lon: number) {
 		try {
 			const response = await fetch(
-				`https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=pk.eyJ1IjoieXN0dXJhc3AiLCJhIjoiY21kZWMyN3c3MDB5cjJqcjF4YWM5MHZoMyJ9.jw6SgrueswyYwYqyZBVTtg&language=ru`
+				`https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${import.meta.env.VITE_MAPBOX_TOKEN}&language=ru`
 			);
 			const data = await response.json();
 
