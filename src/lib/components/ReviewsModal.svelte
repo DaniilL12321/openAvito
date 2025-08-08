@@ -17,14 +17,37 @@
 	interface Answer {
 		answerId: number;
 		answered: string;
-		avatar: string;
+		avatar: AnswerAvatarSizes;
 		link: string;
 		text: string;
 		title: string;
 	}
 
+	interface UserAvatarSizes {
+		'128x128': string;
+		'192x192': string;
+		'24x24': string;
+		'256x256': string;
+		'36x36': string;
+		'48x48': string;
+		'64x64': string;
+		'72x72': string;
+		'96x96': string;
+		[key: string]: string;
+	}
+
+	interface AnswerAvatarSizes {
+		'120x80': string;
+		'168x112': string;
+		'192x128': string;
+		'336x224': string;
+		'60x40': string;
+		'96x64': string;
+		[key: string]: string;
+	}
+
 	interface Review {
-		avatar: string;
+		avatar: UserAvatarSizes;
 		id: number;
 		itemTitle: string;
 		rated: string;
@@ -360,7 +383,7 @@
 					<div class="rounded-2xl border bg-card p-4 text-card-foreground">
 						<div class="flex items-start gap-3">
 							<img
-								src={review.avatar}
+								src={review.avatar['64x64']}
 								alt={review.title}
 								class="h-10 w-10 rounded-full object-cover"
 							/>
@@ -432,7 +455,7 @@
 								<div class="mt-4 border-l-2 border-muted pl-4">
 									<div class="flex items-start gap-3">
 										<img
-											src={review.answer.avatar}
+											src={review.answer.avatar['96x64']}
 											alt={review.answer.title}
 											class="h-8 w-8 rounded-full object-cover"
 										/>
