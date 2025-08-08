@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { createEventDispatcher, onMount, onDestroy } from 'svelte';
 	import type { AvitoItem } from '$lib/types';
 	import { selectedCity, cities, avitoCookies } from '$lib/stores';
 	import {
@@ -85,6 +85,24 @@
 
 	let modalRef: HTMLDivElement;
 
+	let scrollPosition = 0;
+
+	function lockScroll() {
+		scrollPosition = window.scrollY;
+		document.body.style.overflow = 'hidden';
+		document.body.style.position = 'fixed';
+		document.body.style.top = `-${scrollPosition}px`;
+		document.body.style.width = '100%';
+	}
+
+	function unlockScroll() {
+		document.body.style.removeProperty('overflow');
+		document.body.style.removeProperty('position');
+		document.body.style.removeProperty('top');
+		document.body.style.removeProperty('width');
+		window.scrollTo(0, scrollPosition);
+	}
+
 	async function getLocationDetails(lat: number, lon: number) {
 		try {
 			const response = await fetch(
@@ -133,6 +151,7 @@
 	onMount(async () => {
 		modalRef?.focus();
 		loadingDescription = true;
+		lockScroll();
 
 		if (item.images && item.images.length > 0) {
 			item.images.forEach((image) => {
@@ -204,7 +223,12 @@
 		}
 	});
 
+	onDestroy(() => {
+		unlockScroll();
+	});
+
 	function close() {
+		unlockScroll();
 		dispatch('close');
 	}
 
@@ -667,4 +691,7 @@
 {/if}
 
 <style>
+	:global(body) {
+		-webkit-overflow-scrolling: touch;
+	}
 </style>

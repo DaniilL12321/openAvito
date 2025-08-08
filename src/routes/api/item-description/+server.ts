@@ -11,10 +11,8 @@ interface AvitoError {
 export const POST: RequestHandler = async ({ request }) => {
 	try {
 		const { id, cookies } = await request.json();
-		console.log('Received item ID:', id);
 		
 		const apiUrl = `${AVITO_API_URL}/${id}?key=af0deccbgcgidddjgnvljitntccdduijhdinfgjgfjir`;
-		console.log('API URL:', apiUrl);
 
 		const response = await fetch(apiUrl, {
 			headers: {
@@ -27,12 +25,10 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		if (!response.ok) {
 			const error = await response.json() as AvitoError;
-			console.log('API error:', error);
 			return json({ error: error.error || 'Ошибка API Avito' }, { status: response.status });
 		}
 
 		const data = await response.json();
-		console.log('API response received');
 		
 		if (data.error) {
 			console.log('Data error:', data.error);
