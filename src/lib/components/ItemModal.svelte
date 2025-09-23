@@ -112,7 +112,9 @@
 
 			if (data.features && data.features.length > 0) {
 				const feature = data.features[0];
-				const district = feature.context?.find((c: any) => c.id.startsWith('locality'))?.text_ru;
+				const district = feature.context?.find((c: any) =>
+					c.id.startsWith('locality')
+				)?.text_ru;
 				const city = feature.context?.find((c: any) => c.id.startsWith('place'))?.text_ru;
 				const street = feature.text_ru;
 				const house = feature.address;
@@ -191,7 +193,10 @@
 					itemsUrl: '',
 					isCompany: data.seller.profileType === 'shop',
 					ratingStat: null,
-					scoreFloat: typeof data.seller.rating?.scoreFloat === 'number' ? data.seller.rating.scoreFloat : null,
+					scoreFloat:
+						typeof data.seller.rating?.scoreFloat === 'number'
+							? data.seller.rating.scoreFloat
+							: null,
 					sellerId: data.seller.userHash || null
 				};
 
@@ -292,13 +297,16 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape') {
+		if (event.key === 'Escape' && !showReviews) {
+			event.preventDefault();
 			event.stopPropagation();
 			close();
-		} else if (event.key === 'ArrowLeft') {
+		} else if (event.key === 'ArrowLeft' && !showReviews) {
+			event.preventDefault();
 			event.stopPropagation();
 			prevImage();
-		} else if (event.key === 'ArrowRight') {
+		} else if (event.key === 'ArrowRight' && !showReviews) {
+			event.preventDefault();
 			event.stopPropagation();
 			nextImage();
 		}
@@ -344,12 +352,7 @@
 	bind:this={modalRef}
 	class="fixed inset-0 z-[80] bg-background/80 outline-none backdrop-blur-sm"
 	on:click|self={() => dispatch('close')}
-	on:keydown={(e) => {
-		if (e.key === 'Escape' && !showReviews) {
-			e.preventDefault();
-			dispatch('close');
-		}
-	}}
+	on:keydown={handleKeydown}
 	tabindex="0"
 	transition:fly={{ duration: 200, opacity: 0 }}
 >
@@ -506,7 +509,9 @@
 											class="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground"
 										/>
 										<div class="text-left">
-											<p class="text-sm">{locationDetails || 'Загрузка адреса...'}</p>
+											<p class="text-sm">
+												{locationDetails || 'Загрузка адреса...'}
+											</p>
 										</div>
 									</div>
 									<ChevronDown
