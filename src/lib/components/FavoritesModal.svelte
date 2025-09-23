@@ -38,16 +38,16 @@
 	}
 
 	function adaptItem(item: any): AvitoItem {
-		const images = item.images
+		const images = item.images?.main
 			? [
 					{
-						'208x208': item.images.main['208x208'] || item.images.main['catalog'],
-						'236x236': item.images.main['236x236'] || item.images.main['catalog'],
-						'240x240': item.images.main['240x240'] || item.images.main['catalog'],
-						'416x416': item.images.main['416x416'] || item.images.main['catalog'],
-						'432x432': item.images.main['432x432'] || item.images.main['catalog'],
-						'472x472': item.images.main['472x472'] || item.images.main['catalog'],
-						'864x864': item.images.main['864x864'] || item.images.main['web']
+						'208x208': item.images.main['140x140'] || '',
+						'236x236': item.images.main['278x278'] || '',
+						'240x240': item.images.main['278x278'] || '',
+						'416x416': item.images.main['372x372'] || '',
+						'432x432': item.images.main['372x372'] || '',
+						'472x472': item.images.main['507x507'] || '',
+						'864x864': item.images.main['678x678'] || item.images.main['web'] || ''
 					}
 				]
 			: [];
