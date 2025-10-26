@@ -215,6 +215,22 @@
 			if (data.address) {
 				locationDetails = data.address;
 			}
+			if (data.stats?.views) {
+				const total = data.stats.views.total || 0;
+				const today = data.stats.views.today || 0;
+				const declension = (num: number, words: string[]) => {
+					const cases = [2, 0, 1, 1, 1, 2];
+					return words[
+						num % 100 > 4 && num % 100 < 20 ? 2 : cases[Math.min(num % 10, 5)]
+					];
+				};
+				viewsInfo = {
+					itemID: item.id.toString(),
+					sortTime: '',
+					todayViewsStr: `${today} ${declension(today, ['просмотр', 'просмотра', 'просмотров'])}`,
+					totalViewsStr: `${total} ${declension(total, ['просмотр', 'просмотра', 'просмотров'])}`
+				};
+			}
 			if (data.beduin?.main?.params?.bricks?.templateData?.views) {
 				viewsInfo = data.beduin.main.params.bricks.templateData.views;
 			}
